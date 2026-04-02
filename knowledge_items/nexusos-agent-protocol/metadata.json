@@ -1,0 +1,18 @@
+{
+  "title": "NexusOS Multi-Agent Coordination Protocol",
+  "summary": "Defines the multi-agent development protocol for NexusOS. Covers: agent roles (Coordinator, Kernel, GUI, Driver, App, Overhaul), file ownership boundaries (protected files like kernel.c/hal/mm vs freely modifiable driver/gui/userspace dirs), extension points for adding drivers (driver_t interface), filesystems (vfs_ops_t), shell commands (command table), GUI (weak symbols), userspace programs, and syscalls. Includes knowledge item management rules (read=any, write=user permission), coding standards (gnu11, snake_case, 4-space indent, packed structs, volatile MMIO), build/test protocol, and major overhaul workflow. Version tracking: kernel 0.1.0 Genesis, Phase 2 complete.",
+  "created_at": "2026-03-29T00:00:00Z",
+  "updated_at": "2026-03-29T00:00:00Z",
+  "tags": ["nexusos", "multi-agent", "protocol", "coordination", "extension-points", "coding-standards"],
+  "references": [
+    {
+      "type": "file",
+      "path": "c:\\Users\\naska\\OneDrive\\Documents\\GitHub\\COMPLETE_OS_DEVELOPMENT\\docs\\AGENT_PROTOCOL.md"
+    },
+    {
+      "type": "conversation",
+      "id": "e9bfdd3b-9c7a-46b9-bcb1-4346586dfb4d",
+      "title": "Building A Custom X64 OS - Architecture Planning"
+    }
+  ]
+}

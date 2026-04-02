@@ -1,0 +1,13 @@
+{
+  "title": "NexusOS Complete Architecture & Implementation Plan",
+  "summary": "Comprehensive architecture specification for NexusOS, an x86_64 monolithic kernel OS using Limine v11.x boot protocol. Updated for multi-agent development. Covers: system overview (monolithic kernel with service processes), directory structure (kernel/src with hal/mm/sched/display/drivers/fs/syscall/acpi/lib), boot flow (Limine requests, machine state at kmain, init sequence), build system (GCC + NASM + Make). 6-phase development plan includes expanded Phase 3 (VFS + ramfs + FAT32/NTFS/ext2 + Terminal console + Linux shell commands) and Phase 6 placeholder for GUI development. Includes x64 gotchas checklist. Driver model uses standardized driver_t interface with PnP via PCI/USB. Display stack is terminal-first with weak-symbol GUI readiness.",
+  "created_at": "2026-03-29T00:00:00Z",
+  "updated_at": "2026-03-29T00:00:00Z",
+  "tags": ["nexusos", "osdev", "architecture", "x86_64", "limine", "kernel", "implementation-plan", "multi-agent"],
+  "references": [
+    {
+      "type": "file",
+      "path": "c:\\Users\\naska\\OneDrive\\Documents\\GitHub\\COMPLETE_OS_DEVELOPMENT\\docs\\AGENT_PROTOCOL.md"
+    }
+  ]
+}

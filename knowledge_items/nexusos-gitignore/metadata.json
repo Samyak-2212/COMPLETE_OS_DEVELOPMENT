@@ -1,0 +1,13 @@
+{
+  "title": "NexusOS Gitignore Rules",
+  "summary": "Centralized .gitignore rules for the NexusOS project. This knowledge item tracks what files and directories should be excluded from version control, such as compiled object files, kernel binaries, Limine bootloader fetches, disk images (.iso, .hdd, .img), QEMU run logs, and agent working folders (impl_fr_agents). Ensures that binary bloat is kept out of the repository.",
+  "created_at": "2026-04-01T00:00:00Z",
+  "updated_at": "2026-04-01T00:00:00Z",
+  "tags": ["nexusos", "git", "gitignore", "build", "multi-agent"],
+  "references": [
+    {
+      "type": "file",
+      "path": "c:\\Users\\naska\\OneDrive\\Documents\\GitHub\\COMPLETE_OS_DEVELOPMENT\\.gitignore"
+    }
+  ]
+}

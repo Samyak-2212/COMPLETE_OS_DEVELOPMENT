@@ -1,0 +1,17 @@
+{
+  "title": "NexusOS Serial Debugger Subsystem",
+  "summary": "Full debugging infrastructure for NexusOS via COM1 (0x3F8). Provides structured logs, memory dumps, and stack traces (frame-pointer based) to QEMU serial terminal. Includes a 16550 UART driver (`serial.c/h`) and a high-level debugging API (`debug.c/h`). Redirection of panics and early boot info to serial allows analysis by agents without display access.",
+  "created_at": "2026-04-01T00:00:00Z",
+  "updated_at": "2026-04-01T00:00:00Z",
+  "tags": ["nexusos", "debugging", "serial", "uart", "backtrace", "memdump", "multi-agent"],
+  "references": [
+    {
+      "type": "file",
+      "path": "c:\\Users\\naska\\OneDrive\\Documents\\GitHub\\COMPLETE_OS_DEVELOPMENT\\kernel\\src\\lib\\debug.h"
+    },
+    {
+       "type": "file",
+       "path": "c:\\Users\\naska\\OneDrive\\Documents\\GitHub\\COMPLETE_OS_DEVELOPMENT\\kernel\\src\\lib\\serial.h"
+    }
+  ]
+}

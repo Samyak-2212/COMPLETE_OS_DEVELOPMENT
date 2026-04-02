@@ -1,0 +1,8 @@
+{
+  "title": "NexusOS Universal Bug Pool",
+  "summary": "Centralized bug tracking for NexusOS. Contains a markdown table-based issue tracker categorized by severity (Critical, High, Medium, Low) and a resolved archive. Any agent that encounters an issue they cannot solve, or an issue outside their scope, MUST log it here. Descriptions here can be up to 3000 words but must be strictly concise and informative. Modifying this file requires explicit user permission.",
+  "created_at": "2026-03-29T00:00:00Z",
+  "updated_at": "2026-04-01T00:00:00Z",
+  "tags": ["nexusos", "bugs", "issues", "tracker", "multi-agent"],
+  "references": []
+}

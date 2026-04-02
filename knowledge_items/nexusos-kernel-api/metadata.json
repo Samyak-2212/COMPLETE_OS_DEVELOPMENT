@@ -1,0 +1,18 @@
+{
+  "title": "NexusOS Kernel API Reference",
+  "summary": "Stable API reference for NexusOS kernel. Includes function signatures, macros, and structures for Memory Management (PMM, VMM, Heap), Hardware Abstraction (I/O, GDT, IDT/ISR, PIC), Input System (manager, events), Timer (PIT), Framebuffer, Printing (kprintf), String/Memory utils, Spinlocks, and Boot Info (Limine requests). Also includes planned APIs for Driver Interface (PnP), Virtual Filesystem (VFS, vfs_ops), and Syscalls. Agents should code against these interfaces. Phase 2 complete.",
+  "created_at": "2026-03-29T00:00:00Z",
+  "updated_at": "2026-03-29T00:00:00Z",
+  "tags": ["nexusos", "api", "kernel", "interfaces", "vfs", "drivers", "syscalls", "memory"],
+  "references": [
+    {
+      "type": "file",
+      "path": "c:\\Users\\naska\\OneDrive\\Documents\\GitHub\\COMPLETE_OS_DEVELOPMENT\\docs\\KERNEL_API.md"
+    },
+    {
+      "type": "conversation",
+      "id": "e9bfdd3b-9c7a-46b9-bcb1-4346586dfb4d",
+      "title": "Building A Custom X64 OS - Architecture Planning"
+    }
+  ]
+}

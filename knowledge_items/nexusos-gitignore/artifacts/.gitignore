@@ -1,0 +1,48 @@
+# OS specific
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Build artifacts
+*.o
+*.d
+*.a
+*.elf
+*.bin
+*.img
+*.iso
+*.hdd
+*.vdi
+*.qcow2
+*.vmdk
+
+# Object and binary directories
+kernel/bin-*/
+kernel/obj-*/
+userspace/bin/
+userspace/obj/
+bin/
+obj/
+
+# Limine bootloader clones/builds (it's typical to gitignore the local limine fetch)
+limine/
+edk2-ovmf/
+
+# QEMU / Boot logs and test outputs
+*.log
+*.txt
+!CMakeLists.txt
+!README.txt
+hdd_run*.txt
+qemu_*.txt
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*~
+.vs/
+
+# Gemini / Agent working directories
+.gemini/
+impl_fr_agents/
