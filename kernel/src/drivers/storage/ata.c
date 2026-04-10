@@ -11,9 +11,10 @@
 #include "lib/printf.h"
 #include "lib/string.h"
 #include "fs/partition.h"
+#include "fs/devfs.h"
+#include "drivers/timer/pit.h"
 
-static ata_drive_t primary_master;
-static ata_drive_t primary_slave;
+static ata_drive_t drives[4]; /* 0:Pri-Master, 1:Pri-Slave, 2:Sec-Master, 3:Sec-Slave */
 
 /* ── Generic IO Helpers ── */
 
@@ -26,24 +27,36 @@ static void ata_delay(uint32_t io_base) {
 }
 
 static int ata_wait_busy(uint32_t io_base) {
-    int timeout = 100000;
-    while((inb(io_base + ATA_REG_STATUS) & ATA_SR_BSY) && timeout) {
-        timeout--;
+    uint64_t start = pit_get_ticks();
+    while((inb(io_base + ATA_REG_STATUS) & ATA_SR_BSY)) {
+        if (pit_get_ticks() - start > 5000) {
+            kprintf_set_color(0x00FF4444, 0x001A1A2E);
+            kprintf("[ATA] Timeout waiting for BSY to clear\n");
+            return 0;
+        }
         io_wait();
     }
-    return timeout > 0;
+    return 1;
 }
 
 static int ata_wait_drq(uint32_t io_base) {
-    int timeout = 100000;
-    while(!(inb(io_base + ATA_REG_STATUS) & ATA_SR_DRQ) && timeout) {
-        if (inb(io_base + ATA_REG_STATUS) & ATA_SR_ERR) {
-            return 0; /* Error occurred */
+    uint64_t start = pit_get_ticks();
+    while(!(inb(io_base + ATA_REG_STATUS) & ATA_SR_DRQ)) {
+        uint8_t status = inb(io_base + ATA_REG_STATUS);
+        if (status & ATA_SR_ERR) {
+            uint8_t err = inb(io_base + ATA_REG_ERROR);
+            kprintf_set_color(0x00FF4444, 0x001A1A2E);
+            kprintf("[ATA] Error bit set in status (0x%02x), Error Register: 0x%02x\n", status, err);
+            return 0;
         }
-        timeout--;
+        if (pit_get_ticks() - start > 5000) {
+            kprintf_set_color(0x00FF4444, 0x001A1A2E);
+            kprintf("[ATA] Timeout waiting for DRQ\n");
+            return 0;
+        }
         io_wait();
     }
-    return timeout > 0;
+    return 1;
 }
 
 /* ── String swap for identify ── */
@@ -181,47 +194,36 @@ static int ata_probe(void *device_info) {
 }
 
 static int ata_init(void *device_info) {
-    kprintf_set_color(0x0088FF88, 0x001A1A2E);
-    kprintf("[IDE] ");
-    kprintf_set_color(0x00CCCCCC, 0x001A1A2E);
-    kprintf("Probing Primary Master drive on legacy port 0x1F0...\n");
+    (void)device_info;
+    const char *names[] = {"hda", "hdb", "hdc", "hdd"};
+    uint32_t io_ports[] = {ATA_PRIMARY_IO, ATA_PRIMARY_IO, ATA_SECONDARY_IO, ATA_SECONDARY_IO};
+    uint32_t ctrl_ports[] = {ATA_PRIMARY_CTRL, ATA_PRIMARY_CTRL, ATA_SECONDARY_CTRL, ATA_SECONDARY_CTRL};
+    int is_slave[] = {0, 1, 0, 1};
 
-    primary_master.io_base = ATA_PRIMARY_IO;
-    primary_master.ctrl_base = ATA_PRIMARY_CTRL;
-    primary_master.is_master = 1;
-    primary_master.present = 0;
-
-    if (ata_identify(&primary_master)) {
-        kprintf_set_color(0x0088FF88, 0x001A1A2E);
-        kprintf("[OK] ");
-        kprintf_set_color(0x00CCCCCC, 0x001A1A2E);
-        kprintf("ATA Drive found! Model: '%s' | %llu sectors (%llu MB)\n", 
-            primary_master.model, 
-            (unsigned long long)primary_master.total_sectors,
-            (unsigned long long)(primary_master.total_sectors * 512 / (1024*1024)));
+    for (int i = 0; i < 4; i++) {
+        ata_drive_t *drive = &drives[i];
+        memset(drive, 0, sizeof(ata_drive_t));
+        drive->io_base = io_ports[i];
+        drive->ctrl_base = ctrl_ports[i];
+        drive->is_master = !is_slave[i];
+        strcpy(drive->drive_name, names[i]);
         
-        partition_parse_mbr(&primary_master);
-    } else {
-        kprintf_set_color(0x00FF4444, 0x001A1A2E);
-        kprintf("[FAIL] ");
-        kprintf_set_color(0x00CCCCCC, 0x001A1A2E);
-        kprintf("No ATA drive detected on Primary Master.\n");
-    }
+        if (ata_identify(drive)) {
+            kprintf_set_color(0x0088FF88, 0x001A1A2E);
+            kprintf("[ATA] ");
+            kprintf_set_color(0x00CCCCCC, 0x001A1A2E);
+            kprintf("%s (%s): '%s' | %lu sectors\n", 
+                drive->drive_name, 
+                drive->is_master ? "Master" : "Slave",
+                drive->model, 
+                (uint64_t)drive->total_sectors);
 
-    /* Probe Primary Slave */
-    primary_slave.io_base = ATA_PRIMARY_IO;
-    primary_slave.is_master = 0;
-    primary_slave.present = 0;
+            /* Register whole-disk node in /dev (e.g. /dev/hda) */
+            devfs_register_block(drive->drive_name, drive,
+                                 0, drive->total_sectors);
 
-    if (ata_identify(&primary_slave)) {
-        kprintf_set_color(0x0088FF88, 0x001A1A2E);
-        kprintf("[OK] ");
-        kprintf_set_color(0x00CCCCCC, 0x001A1A2E);
-        kprintf("ATA SLAVE Drive found! Model: '%s' | %llu sectors\n", 
-            primary_slave.model, 
-            (unsigned long long)primary_slave.total_sectors);
-        
-        partition_parse_mbr(&primary_slave);
+            partition_parse_mbr(drive);
+        }
     }
 
     return 0;

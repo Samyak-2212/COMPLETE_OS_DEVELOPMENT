@@ -40,6 +40,12 @@ SECTIONS
     . = ALIGN(CONSTANT(MAXPAGESIZE));
     .rodata : {
         *(.rodata .rodata.*)
+
+        /* Shell command auto-registration table */
+        . = ALIGN(8);
+        __shell_commands_start = .;
+        KEEP(*(.shell_commands))
+        __shell_commands_end = .;
     } :rodata
 
     /* Build ID (optional, harmless to include) */

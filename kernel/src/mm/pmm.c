@@ -187,3 +187,11 @@ uint64_t pmm_get_total_memory(void) {
 uint64_t pmm_get_free_memory(void) {
     return (total_pages - used_pages) * PMM_PAGE_SIZE;
 }
+
+uint64_t pmm_get_total_page_count(void) {
+    return total_pages;
+}
+
+uint64_t pmm_get_free_page_count(void) {
+    return total_pages - used_pages;
+}

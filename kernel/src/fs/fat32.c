@@ -8,6 +8,7 @@
 #include "lib/string.h"
 #include "lib/printf.h"
 #include "mm/heap.h"
+#include "fs/partition.h"
 
 /* Basic fat32 instance data */
 typedef struct {
@@ -36,6 +37,18 @@ static void trim_spaces(char *str, int max_len) {
     }
 }
 
+static uint32_t fat32_get_next_cluster(fat32_fs_t *fs, uint32_t cluster) {
+    uint32_t fat_offset = cluster * 4;
+    uint32_t fat_sector = fs->fat_lba + (fat_offset / 512);
+    uint32_t ent_offset = fat_offset % 512;
+
+    uint8_t sector[512];
+    if (disk_read_sectors(fs->part->drive, fat_sector, 1, sector) == 0) return 0x0FFFFFFF;
+
+    uint32_t next = *(uint32_t*)&sector[ent_offset];
+    return next & 0x0FFFFFFF;
+}
+
 /* Parse an 8.3 filename */
 static void parse_fat32_name(char *dest, const char *src) {
     int d = 0;
@@ -56,36 +69,38 @@ static dirent_t *fat32_readdir(vfs_node_t *node, uint32_t index) {
     if (!n_data) return NULL;
     fat32_fs_t *fs = n_data->fs;
 
-    /* For simplicity, we just safely read the first cluster of the directory.
-     * Full FAT32 traversals would chase the cluster chain. */
-    uint32_t cluster_lba = fs->data_lba + (n_data->first_cluster - 2) * fs->sectors_per_cluster;
-    
-    uint8_t *cluster_buf = kmalloc(fs->bytes_per_cluster);
-    if (ata_read_sectors(fs->part->drive, cluster_lba, fs->sectors_per_cluster, cluster_buf) == 0) {
-        kfree(cluster_buf);
-        return NULL;
-    }
-
-    fat32_dirent_t *entries = (fat32_dirent_t*)cluster_buf;
-    uint32_t max_entries = fs->bytes_per_cluster / sizeof(fat32_dirent_t);
-    
+    uint32_t current_cluster = n_data->first_cluster;
     uint32_t valid_count = 0;
     static dirent_t d_out;
     
-    for (uint32_t i = 0; i < max_entries; i++) {
-        if (entries[i].name[0] == 0x00) break; /* End of directory */
-        if (entries[i].name[0] == (char)0xE5) continue; /* Deleted entry */
-        if (entries[i].attr == 0x0F) continue; /* LFN entry (we skip Long File Names for now) */
-        if (entries[i].attr & 0x08) continue; /* Volume label */
+    uint8_t *cluster_buf = kmalloc(fs->bytes_per_cluster);
+
+    while (current_cluster < 0x0FFFFFF8) {
+        uint32_t cluster_lba = fs->data_lba + (current_cluster - 2) * fs->sectors_per_cluster;
+        if (disk_read_sectors(fs->part->drive, cluster_lba, fs->sectors_per_cluster, cluster_buf) == 0) break;
+
+        fat32_dirent_t *entries = (fat32_dirent_t*)cluster_buf;
+        uint32_t max_entries = fs->bytes_per_cluster / sizeof(fat32_dirent_t);
         
-        if (valid_count == index) {
-            parse_fat32_name(d_out.name, entries[i].name);
-            d_out.ino = entries[i].cluster_low | (entries[i].cluster_high << 16);
-            d_out.type = (entries[i].attr & 0x10) ? FS_DIRECTORY : FS_FILE;
-            kfree(cluster_buf);
-            return &d_out;
+        for (uint32_t i = 0; i < max_entries; i++) {
+            if (entries[i].name[0] == 0x00) {
+                kfree(cluster_buf);
+                return NULL;
+            }
+            if (entries[i].name[0] == (char)0xE5) continue;
+            if (entries[i].attr == 0x0F) continue;
+            if (entries[i].attr & 0x08) continue;
+            
+            if (valid_count == index) {
+                parse_fat32_name(d_out.name, entries[i].name);
+                d_out.ino = entries[i].cluster_low | (entries[i].cluster_high << 16);
+                d_out.type = (entries[i].attr & 0x10) ? FS_DIRECTORY : FS_FILE;
+                kfree(cluster_buf);
+                return &d_out;
+            }
+            valid_count++;
         }
-        valid_count++;
+        current_cluster = fat32_get_next_cluster(fs, current_cluster);
     }
 
     kfree(cluster_buf);
@@ -97,43 +112,47 @@ static vfs_node_t *fat32_finddir(vfs_node_t *node, const char *name) {
     if (!n_data) return NULL;
     fat32_fs_t *fs = n_data->fs;
 
-    uint32_t cluster_lba = fs->data_lba + (n_data->first_cluster - 2) * fs->sectors_per_cluster;
-    
+    uint32_t current_cluster = n_data->first_cluster;
     uint8_t *cluster_buf = kmalloc(fs->bytes_per_cluster);
-    if (ata_read_sectors(fs->part->drive, cluster_lba, fs->sectors_per_cluster, cluster_buf) == 0) {
-        kfree(cluster_buf);
-        return NULL;
-    }
 
-    fat32_dirent_t *entries = (fat32_dirent_t*)cluster_buf;
-    uint32_t max_entries = fs->bytes_per_cluster / sizeof(fat32_dirent_t);
-    
-    for (uint32_t i = 0; i < max_entries; i++) {
-        if (entries[i].name[0] == 0x00) break;
-        if (entries[i].name[0] == (char)0xE5) continue;
-        if (entries[i].attr == 0x0F) continue;
-        if (entries[i].attr & 0x08) continue;
+    while (current_cluster < 0x0FFFFFF8) {
+        uint32_t cluster_lba = fs->data_lba + (current_cluster - 2) * fs->sectors_per_cluster;
+        if (disk_read_sectors(fs->part->drive, cluster_lba, fs->sectors_per_cluster, cluster_buf) == 0) break;
+
+        fat32_dirent_t *entries = (fat32_dirent_t*)cluster_buf;
+        uint32_t max_entries = fs->bytes_per_cluster / sizeof(fat32_dirent_t);
         
-        char parsed_name[14];
-        parse_fat32_name(parsed_name, entries[i].name);
-        
-        if (strcmp(parsed_name, name) == 0) {
-            vfs_node_t *child = kmalloc(sizeof(vfs_node_t));
-            memset(child, 0, sizeof(vfs_node_t));
-            strcpy(child->name, parsed_name);
-            child->flags = (entries[i].attr & 0x10) ? FS_DIRECTORY : FS_FILE;
-            child->length = entries[i].file_size;
-            child->ops = &fat32_ops;
+        for (uint32_t i = 0; i < max_entries; i++) {
+            if (entries[i].name[0] == 0x00) {
+                kfree(cluster_buf);
+                return NULL;
+            }
+            if (entries[i].name[0] == (char)0xE5) continue;
+            if (entries[i].attr == 0x0F) continue;
+            if (entries[i].attr & 0x08) continue;
             
-            fat32_node_data_t *c_data = kmalloc(sizeof(fat32_node_data_t));
-            c_data->fs = fs;
-            c_data->first_cluster = entries[i].cluster_low | (entries[i].cluster_high << 16);
-            c_data->file_size = entries[i].file_size;
-            child->impl = c_data;
+            char parsed_name[14];
+            parse_fat32_name(parsed_name, entries[i].name);
             
-            kfree(cluster_buf);
-            return child;
+            if (strcmp(parsed_name, name) == 0) {
+                vfs_node_t *child = kmalloc(sizeof(vfs_node_t));
+                memset(child, 0, sizeof(vfs_node_t));
+                strcpy(child->name, parsed_name);
+                child->flags = (entries[i].attr & 0x10) ? FS_DIRECTORY : FS_FILE;
+                child->length = entries[i].file_size;
+                child->ops = &fat32_ops;
+                
+                fat32_node_data_t *c_data = kmalloc(sizeof(fat32_node_data_t));
+                c_data->fs = fs;
+                c_data->first_cluster = entries[i].cluster_low | (entries[i].cluster_high << 16);
+                c_data->file_size = entries[i].file_size;
+                child->impl = c_data;
+                
+                kfree(cluster_buf);
+                return child;
+            }
         }
+        current_cluster = fat32_get_next_cluster(fs, current_cluster);
     }
 
     kfree(cluster_buf);
@@ -151,22 +170,42 @@ static uint64_t fat32_read(vfs_node_t *node, uint64_t offset, uint64_t size, uin
         size = n_data->file_size - offset;
     }
 
-    /* Naive read: we just read the first cluster (sufficient for small text files like a hello.txt) */
-    /* Real implementations must walk the FAT tables */
-    uint32_t cluster_lba = fs->data_lba + (n_data->first_cluster - 2) * fs->sectors_per_cluster;
+    uint32_t cluster_to_skip = offset / fs->bytes_per_cluster;
+    uint32_t current_cluster = n_data->first_cluster;
     
+    for (uint32_t i = 0; i < cluster_to_skip; i++) {
+        current_cluster = fat32_get_next_cluster(fs, current_cluster);
+        if (current_cluster >= 0x0FFFFFF8) return 0;
+    }
+
+    uint64_t bytes_read = 0;
+    uint32_t cluster_offset = offset % fs->bytes_per_cluster;
     uint8_t *cluster_buf = kmalloc(fs->bytes_per_cluster);
-    ata_read_sectors(fs->part->drive, cluster_lba, fs->sectors_per_cluster, cluster_buf);
-    
-    memcpy(buffer, cluster_buf + offset, size);
+
+    while (bytes_read < size) {
+        uint32_t cluster_lba = fs->data_lba + (current_cluster - 2) * fs->sectors_per_cluster;
+        if (disk_read_sectors(fs->part->drive, cluster_lba, fs->sectors_per_cluster, cluster_buf) == 0) break;
+
+        uint32_t to_copy = fs->bytes_per_cluster - cluster_offset;
+        if (to_copy > (size - bytes_read)) to_copy = (size - bytes_read);
+
+        memcpy(buffer + bytes_read, cluster_buf + cluster_offset, to_copy);
+        bytes_read += to_copy;
+        cluster_offset = 0;
+
+        if (bytes_read < size) {
+            current_cluster = fat32_get_next_cluster(fs, current_cluster);
+            if (current_cluster >= 0x0FFFFFF8) break;
+        }
+    }
+
     kfree(cluster_buf);
-    
-    return size;
+    return bytes_read;
 }
 
 vfs_node_t *fat32_mount(disk_partition_t *part) {
     uint8_t *sector = kmalloc(512);
-    if (ata_read_sectors(part->drive, part->lba_start, 1, sector) == 0) {
+    if (disk_read_sectors(part->drive, part->lba_start, 1, sector) == 0) {
         kfree(sector);
         return NULL;
     }

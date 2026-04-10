@@ -16,6 +16,8 @@
 static pci_device_t pci_device_list[MAX_PCI_DEVICES];
 static int pci_device_count = 0;
 
+static void pci_scan_bus(uint8_t bus);
+
 /* Read Configuration Space */
 uint32_t pci_read_dword(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset) {
     uint32_t address = (uint32_t)((bus << 16) | (slot << 11) | (func << 8) | (offset & 0xFC) | ((uint32_t)0x80000000));
@@ -138,6 +140,10 @@ static void pci_check_function(uint8_t bus, uint8_t device, uint8_t function) {
     dev->vendor_id = vendor_id;
     dev->device_id = pci_read_word(bus, device, function, 0x02);
     
+    /* Enable Bus Mastering */
+    uint16_t command = pci_read_word(bus, device, function, 0x04);
+    pci_write_word(bus, device, function, 0x04, command | (1 << 2));
+    
     dev->revision_id = pci_read_byte(bus, device, function, 0x08);
     dev->prog_if = pci_read_byte(bus, device, function, 0x09);
     dev->subclass_code = pci_read_byte(bus, device, function, 0x0A);
@@ -176,6 +182,12 @@ static void pci_check_function(uint8_t bus, uint8_t device, uint8_t function) {
 
     /* Push the newly discovered device into the PnP manager */
     driver_probe_device(dev);
+
+    /* If this is a PCI-to-PCI bridge, scan the secondary bus */
+    if (dev->class_code == 0x06 && dev->subclass_code == 0x04) {
+        uint8_t secondary_bus = pci_read_byte(bus, device, function, 0x19);
+        pci_scan_bus(secondary_bus);
+    }
 }
 
 static void pci_check_device(uint8_t bus, uint8_t device) {
@@ -195,19 +207,17 @@ static void pci_check_device(uint8_t bus, uint8_t device) {
     }
 }
 
-void pci_init(void) {
-    kprintf_set_color(0x00FFCC00, 0x001A1A2E);
-    kprintf("\n--- PCI Enumeration ---\n\n");
-    kprintf_set_color(0x00CCCCCC, 0x001A1A2E);
+void pci_scan_bus(uint8_t bus) {
+    for (uint8_t device = 0; device < 32; device++) {
+        pci_check_device(bus, device);
+    }
+}
 
+void pci_init(void) {
     pci_device_count = 0;
 
-    /* Safe scan: Limit to Bus 0 initially to avoid NMI/Master Aborts on unassigned PCIe buses via legacy CF8 */
-    for (uint16_t bus = 0; bus < 1; bus++) {
-        for (uint8_t device = 0; device < 32; device++) {
-            pci_check_device((uint8_t)bus, device);
-        }
-    }
+    /* Start recursive scan from Bus 0 */
+    pci_scan_bus(0);
 
     kprintf_set_color(0x0088FF88, 0x001A1A2E);
     kprintf("[OK] ");

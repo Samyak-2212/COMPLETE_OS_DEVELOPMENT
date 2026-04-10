@@ -42,6 +42,7 @@ typedef struct {
     void (*close)(struct vfs_node *node);
     struct dirent *(*readdir)(struct vfs_node *node, uint32_t index);
     struct vfs_node *(*finddir)(struct vfs_node *node, const char *name);
+    struct vfs_node *(*mkdir)(struct vfs_node *node, const char *name);
 } vfs_ops_t;
 
 /* The primary filesystem node struct, representing any file/folder/pipe in RAM */
@@ -71,5 +72,8 @@ void vfs_open(vfs_node_t *node);
 void vfs_close(vfs_node_t *node);
 dirent_t *vfs_readdir(vfs_node_t *node, uint32_t index);
 vfs_node_t *vfs_finddir(vfs_node_t *node, const char *name);
+vfs_node_t *vfs_resolve_path(const char *path);
+int vfs_mkdir(const char *path);
+int vfs_mount(const char *path, vfs_node_t *local_root);
 
 #endif /* NEXUS_FS_VFS_H */

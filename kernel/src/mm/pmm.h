@@ -35,4 +35,8 @@ uint64_t pmm_get_total_memory(void);
 /* Get free physical memory in bytes */
 uint64_t pmm_get_free_memory(void);
 
+/* Get physical page counts */
+uint64_t pmm_get_total_page_count(void);
+uint64_t pmm_get_free_page_count(void);
+
 #endif /* NEXUS_MM_PMM_H */

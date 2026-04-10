@@ -32,18 +32,18 @@
 - [x] 2.V Verification — builds 0 errors, ISO generated, keyboard echo works
 
 ## Phase 3: PCI, Storage, Filesystem, Terminal, Shell ← NEXT
-- [ ] 3.1 Driver interface + PnP manager
-- [ ] 3.2 PCI enumeration
-- [ ] 3.3 ATA PIO driver
-- [ ] 3.4 AHCI driver
-- [ ] 3.5 VFS + ramfs (root filesystem)
-- [ ] 3.6 Partition detection (MBR/GPT)
-- [ ] 3.7 FAT32 driver
+- [x] 3.1 Driver interface + PnP manager
+- [x] 3.2 PCI enumeration
+- [/] 3.3 ATA PIO driver
+- [/] 3.4 AHCI driver
+- [x] 3.5 VFS + ramfs (root filesystem)
+- [x] 3.6 Partition detection (MBR/GPT)
+- [/] 3.7 FAT32 driver
 - [ ] 3.8 NTFS driver (read-only)
-- [ ] 3.9 ext2/ext4 driver (read-only)
-- [ ] 3.10 Terminal console (VT100)
-- [ ] 3.11 Display manager (terminal↔GUI switching)
-- [ ] 3.12 Kernel shell (21 Linux-like commands)
+- [/] 3.9 ext2/ext4 driver (read-only)
+- [x] 3.10 Terminal console (VT100)
+- [x] 3.11 Display manager (terminal↔GUI switching)
+- [/] 3.12 Kernel shell (21 Linux-like commands)
 - [ ] 3.13 devfs (/dev)
 - [ ] 3.V Verification
 

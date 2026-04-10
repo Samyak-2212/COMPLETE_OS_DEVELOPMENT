@@ -1,0 +1,29 @@
+# Task Tracker — Phase 3: Integration & Verification
+
+- [ ] 1. Activate Subsystem Probing
+    - [ ] Uncomment `ata_init_subsystem()` and `ahci_init_subsystem()` in `kernel.c`.
+    - [ ] Uncomment `pci_init()` in `kernel.c`.
+    - [ ] Verify that `driver_register` is called for both ATA and AHCI.
+- [ ] 2. Storage Driver Handover
+    - [ ] Verify PCI scan detects the IDE/SATA controllers.
+    - [ ] Verify `driver_probe_device` correctly matches the PCI class to the ATA/AHCI driver.
+    - [ ] Verify `ata_identify` succeeds for at least one disk in QEMU.
+- [ ] 3. Partition & VFS Setup
+    - [ ] Verify `partition_get_list` is populated after ATA init.
+    - [ ] Verify `ramfs_init()` creates the root directory.
+    - [ ] Verify `/dev`, `/tmp`, and `/mnt` are created on the ramfs.
+    - [ ] Enable automatic mounting of FAT32/ext4 partitions under `/mnt/hdaX`.
+- [ ] 4. Kernel Shell Module
+    - [ ] Create `kernel/src/display/terminal_shell.c`.
+    - [ ] Implement `ls` (vfs_readdir).
+    - [ ] Implement `cat` (vfs_read).
+    - [ ] Implement `echo` (vfs_write).
+    - [ ] Implement `cd` and `pwd`.
+- [ ] 5. System Loop Transition
+    - [ ] Replace the simple keyboard echo loop in `kernel.c` with the shell loop.
+    - [ ] Ensure `hlt` is used in the idle loop.
+- [ ] 6. Final Verification
+    - [ ] `make clean && make all` (0 warnings).
+    - [ ] `make run` boot test.
+    - [ ] Screenshot or Serial log of successful shell session.
+    - [ ] Log any found issues in `knowledge_items/nexusos-bug-pool/artifacts/bug_pool.md`.

@@ -375,10 +375,10 @@ void framebuffer_scroll(uint32_t font_height) {
         }
     }
 
-    /* Clear the bottom font_height rows */
+    /* Clear the bottom font_height rows with default navy blue */
     for (uint32_t y = rows_to_copy; y < (uint32_t)fb_info.height; y++) {
         for (uint32_t x = 0; x < fb_info.width; x++) {
-            fb_info.address[y * pixels_per_row + x] = 0x00000000;
+            fb_info.address[y * pixels_per_row + x] = 0x001A1A2E;
         }
     }
 }

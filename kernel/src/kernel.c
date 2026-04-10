@@ -11,6 +11,9 @@
 
 #include "boot/limine_requests.h"
 #include "drivers/video/framebuffer.h"
+#include "display/terminal.h"
+#include "shell/shell_core.h"
+#include "display/display_manager.h"
 #include "lib/printf.h"
 #include "lib/string.h"
 #include "lib/debug.h"
@@ -33,6 +36,7 @@
 #include "drivers/storage/ahci.h"
 #include "fs/vfs.h"
 #include "fs/ramfs.h"
+#include "fs/devfs.h"
 #include "fs/partition.h"
 #include "fs/fat32.h"
 #include "fs/ext4.h"
@@ -53,7 +57,7 @@ static void hcf(void) {
 static void kpanic(const char *msg) {
     debug_log(DEBUG_LEVEL_PANIC, "KERNEL", "PANIC: %s\n", msg);
     debug_backtrace();
-    kprintf_set_color(0x00FF4444, 0x00000000);
+    kprintf_set_color(0x00FF4444, 0x001A1A2E);
     kprintf("\n!!! KERNEL PANIC: %s\n", msg);
     hcf();
 }
@@ -245,54 +249,30 @@ void kmain(void) {
     kprintf_set_color(0x00CCCCCC, 0x001A1A2E);
     kprintf("Interrupts enabled (Virtual Wire Mode)\n");
 
-    /* ... Mount and other init logic ... */
-    // [Keeping existing VFS/FS code from lines 260-329]
-    // ... (Skipped for brevity in this replace call, I'll use a larger block or multiple chunks)
-    // Wait, I should probably use multi_replace for accuracy.
-
-    /* ================================================================
-     * Phase 3: Device Drivers (Chunk 1)
-     * ================================================================ */
-
-    kprintf_set_color(0x00FFCC00, 0x001A1A2E);
-    kprintf("\n--- Phase 3: Driver Initialization ---\n\n");
     kprintf_set_color(0x00CCCCCC, 0x001A1A2E);
 
-    /* 15. Register Drivers */
-    // ata_init_subsystem();
-    // ahci_init_subsystem();
-
-    /* 16. Enumerate PCI Bus (Triggers driver probes) */
-    // pci_init(); /* Temporarily disabled to debug IRQ drop */
-
-    /* ================================================================
-     * Phase 3: Filesystems (Chunk 2)
-     * ================================================================ */
-
-    kprintf_set_color(0x00FFCC00, 0x001A1A2E);
-    kprintf("\n--- Phase 3: Filesystem Initialization ---\n\n");
-    kprintf_set_color(0x00CCCCCC, 0x001A1A2E);
-
-    /* 17. Mount Root RAM Filesystem */
+    /* 15. Mount Root RAM Filesystem */
     vfs_root = ramfs_init();
 
-    /* 18. Mount Discovered FAT32 Partitions */
-    int part_count = 0;
-    disk_partition_t *parts = partition_get_list(&part_count);
-    
-    for (int i = 0; i < part_count; i++) {
-        if (parts[i].os_type == 0x0B || parts[i].os_type == 0x0C || parts[i].os_type == 0x0E || parts[i].os_type == 0xEF) {
-            vfs_node_t *fatfs = fat32_mount(&parts[i]);
-            if (fatfs) {
-                /* Logged to terminal */
-            }
-        } else if (parts[i].os_type == 0x83) {
-            vfs_node_t *extfs = ext4_mount(&parts[i]);
-            if (extfs) {
-                /* Logged to terminal */
-            }
-        }
-    }
+    /* 16-pre. Mount devfs at /dev (after ramfs creates /dev stub, before storage init) */
+    devfs_init();
+
+    /* ================================================================
+     * Phase 3: Hardware & Storage Initialization
+     * ================================================================ */
+
+    kprintf_set_color(0x00FFCC00, 0x001A1A2E);
+    kprintf("\n--- Phase 3: Hardware & Storage Initialization ---\n\n");
+    kprintf_set_color(0x00CCCCCC, 0x001A1A2E);
+
+    /* 16. Driver Registration & Hardware Discovery */
+    kprintf("Registering storage drivers...\n");
+    debug_log(DEBUG_LEVEL_INFO, "BOOT", "Registering storage drivers...");
+    ata_init_subsystem();
+    ahci_init_subsystem();
+
+    /* 17. PCI Enumeration (Triggers driver probes, partition discovery, and mounting) */
+    pci_init(); 
 
     /* ================================================================
      * Initialization complete — Test and demo
@@ -317,22 +297,16 @@ void kmain(void) {
     /* Timer test */
     kprintf("  Timer test: ticks=%llu\n", (unsigned long long)pit_get_ticks());
 
-    /* Keyboard echo prompt */
-    kprintf_set_color(0x00FFFFFF, 0x001A1A2E);
-    kprintf("\n  Type on keyboard (characters will echo below):\n  > ");
-    debug_log(DEBUG_LEVEL_INFO, "BOOT", "Entering main kernel loop.");
+    /* ================================================================
+     * Phase 3: Terminal & Shell
+     * ================================================================ */
 
-    /* Boot complete — stop the responsiveness pixel */
-    pit_stop_boot_pixel();
-
-    /* Main kernel idle loop */
-    while (1) {
-        input_event_t event;
-        if (input_poll_event(&event)) {
-            if (event.type == INPUT_EVENT_KEY_PRESS && event.ascii) {
-                kputchar(event.ascii);
-            }
-        }
-        __asm__ volatile ("hlt");
-    }
+    kprintf_set_color(0x00FFCC00, 0x001A1A2E);
+    debug_log(DEBUG_LEVEL_INFO, "BOOT", "Launching Kernel Shell...");
+    
+    /* Clear boot logs for a fresh shell entry */
+    terminal_clear(&main_terminal);
+    
+    /* Main kernel shell — never returns */
+    shell_run();
 }

@@ -54,7 +54,15 @@
 #define ATA_CMD_CACHE_FLUSH_EXT 0xEA
 #define ATA_CMD_IDENTIFY    0xEC
 
+typedef enum {
+    DISK_TYPE_ATA,
+    DISK_TYPE_SATA,
+    DISK_TYPE_NVME
+} disk_type_t;
+
 typedef struct {
+    disk_type_t type;
+    void *device_data; /* Implementation specific (e.g. AHCI port) */
     int present;
     int is_master;
     int is_lba48;
@@ -62,6 +70,7 @@ typedef struct {
     uint32_t ctrl_base;
     uint64_t total_sectors;
     char model[41];
+    char drive_name[4]; /* e.g. "hda" */
 } ata_drive_t;
 
 /* Global initialization and registry */

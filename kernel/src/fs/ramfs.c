@@ -101,6 +101,25 @@ static vfs_node_t *ramfs_finddir(vfs_node_t *node, const char *name) {
     return NULL;
 }
 
+static vfs_node_t *ramfs_create_dir(vfs_node_t *parent, const char *name) {
+    ramfs_internal_t *priv = (ramfs_internal_t*)parent->impl;
+    if (priv->child_count >= RAMFS_MAX_CHILDREN) return NULL;
+
+    vfs_node_t *node = kmalloc(sizeof(vfs_node_t));
+    memset(node, 0, sizeof(vfs_node_t));
+    strcpy(node->name, name);
+    node->flags = FS_DIRECTORY;
+    node->mask = parent->mask;
+    node->ops = &ramfs_ops;
+
+    ramfs_internal_t *node_priv = kmalloc(sizeof(ramfs_internal_t));
+    memset(node_priv, 0, sizeof(ramfs_internal_t));
+    node->impl = node_priv;
+
+    priv->children[priv->child_count++] = node;
+    return node;
+}
+
 vfs_node_t *ramfs_init(void) {
     ramfs_ops.read = ramfs_read;
     ramfs_ops.write = ramfs_write;
@@ -108,6 +127,7 @@ vfs_node_t *ramfs_init(void) {
     ramfs_ops.close = NULL;
     ramfs_ops.readdir = ramfs_readdir;
     ramfs_ops.finddir = ramfs_finddir;
+    ramfs_ops.mkdir = ramfs_create_dir;
 
     /* Create root node */
     vfs_node_t *root = kmalloc(sizeof(vfs_node_t));
@@ -127,5 +147,10 @@ vfs_node_t *ramfs_init(void) {
     kprintf_set_color(0x00CCCCCC, 0x001A1A2E);
     kprintf("RAMFS initialized (root `/`)\n");
     
+    /* Create root hierarchy */
+    ramfs_create_dir(root, "dev");
+    ramfs_create_dir(root, "tmp");
+    ramfs_create_dir(root, "mnt");
+
     return root;
 }

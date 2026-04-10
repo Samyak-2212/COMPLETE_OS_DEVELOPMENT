@@ -40,7 +40,7 @@ static vfs_node_t *ext4_finddir(vfs_node_t *node, const char *name);
 static int ext4_read_block(ext4_info_t *fs, uint64_t block_num, uint8_t *buffer) {
     uint64_t lba = fs->part->lba_start + (block_num * (fs->block_size / 512));
     uint32_t sector_count = fs->block_size / 512;
-    return ata_read_sectors(fs->part->drive, lba, sector_count, buffer);
+    return disk_read_sectors(fs->part->drive, lba, sector_count, buffer);
 }
 
 /* Fetch an inode off the disk */
@@ -91,6 +91,7 @@ static int ext4_read_inode(ext4_info_t *fs, uint32_t inode_num, ext4_inode_t *in
 
 /* Extent Tree Walker: Given logical block 'l_block', find physical block */
 static uint64_t ext4_get_physical_block(ext4_info_t *fs, ext4_inode_t *inode, uint32_t l_block) {
+    uint64_t result_phy = 0;
     if ((inode->flags & 0x80000) == 0) {
         /* Not using extents! Fallback to Ext2 linear blocks */
         if (l_block < 12) {
@@ -124,7 +125,6 @@ static uint64_t ext4_get_physical_block(ext4_info_t *fs, ext4_inode_t *inode, ui
 
     /* We are at leaf node */
     ext4_extent_t *ex = (ext4_extent_t *)((uint8_t *)eh + sizeof(ext4_extent_header_t));
-    uint64_t result_phy = 0;
     for (int i = 0; i < eh->entries; i++) {
         if (l_block >= ex[i].block && l_block < ex[i].block + ex[i].len) {
             uint64_t start_phy = ((uint64_t)ex[i].start_hi << 32) | ex[i].start_lo;
@@ -238,7 +238,7 @@ vfs_node_t *ext4_mount(disk_partition_t *part) {
 
     /* Read Superblock (starts at offset 1024) */
     uint8_t buffer[2048];
-    if (!ata_read_sectors(part->drive, part->lba_start + 2, 2, buffer)) return NULL;
+    if (!disk_read_sectors(part->drive, part->lba_start + 2, 2, buffer)) return NULL;
 
     ext4_superblock_t *sb = (ext4_superblock_t *)(buffer + 0); /* 1024 bytes into partition is sector 2, offset 0 */
     if (sb->magic != EXT4_MAGIC) {
