@@ -11,13 +11,13 @@
 #include <stddef.h>
 #include <stdbool.h>
 
-#define FS_FILE        0x01
-#define FS_DIRECTORY   0x02
-#define FS_CHARDEVICE  0x03
-#define FS_BLOCKDEVICE 0x04
-#define FS_PIPE        0x05
-#define FS_SYMLINK     0x06
-#define FS_MOUNTPOINT  0x08
+#define FS_FILE        (1 << 0)
+#define FS_DIRECTORY   (1 << 1)
+#define FS_CHARDEVICE  (1 << 2)
+#define FS_BLOCKDEVICE (1 << 3)
+#define FS_PIPE        (1 << 4)
+#define FS_SYMLINK     (1 << 5)
+#define FS_MOUNTPOINT  (1 << 6)
 
 /* Read/Write/Execute Permissions (POSIX-style) */
 #define FS_PERM_R      00400
@@ -43,6 +43,7 @@ typedef struct {
     struct dirent *(*readdir)(struct vfs_node *node, uint32_t index);
     struct vfs_node *(*finddir)(struct vfs_node *node, const char *name);
     struct vfs_node *(*mkdir)(struct vfs_node *node, const char *name);
+    struct vfs_node *(*create)(struct vfs_node *node, const char *name);
 } vfs_ops_t;
 
 /* The primary filesystem node struct, representing any file/folder/pipe in RAM */
@@ -74,6 +75,7 @@ dirent_t *vfs_readdir(vfs_node_t *node, uint32_t index);
 vfs_node_t *vfs_finddir(vfs_node_t *node, const char *name);
 vfs_node_t *vfs_resolve_path(const char *path);
 int vfs_mkdir(const char *path);
+vfs_node_t *vfs_create(const char *path);
 int vfs_mount(const char *path, vfs_node_t *local_root);
 
 #endif /* NEXUS_FS_VFS_H */

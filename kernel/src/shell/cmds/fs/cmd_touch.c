@@ -22,40 +22,14 @@ static int cmd_touch(int argc, char **argv) {
     vfs_node_t *existing = vfs_resolve_path(path);
     if (existing) return 0;
 
-    /* Determine parent directory and filename */
-    char parent_path[SHELL_MAX_LINE_LEN];
-    strcpy(parent_path, path);
-
-    char *slash = NULL;
-    for (char *p = parent_path; *p; p++) {
-        if (*p == '/') slash = p;
-    }
-
-    const char *filename;
-    if (slash && slash != parent_path) {
-        *slash   = '\0';
-        filename = slash + 1;
-    } else {
-        strcpy(parent_path, "/");
-        filename = (slash) ? slash + 1 : argv[1];
-    }
-
-    vfs_node_t *parent = vfs_resolve_path(parent_path);
-    if (!parent || (parent->flags & FS_DIRECTORY) == 0) {
-        kprintf("touch: %s: parent directory not found\n", parent_path);
+    /* Create the file using the new VFS API */
+    vfs_node_t *node = vfs_create(path);
+    if (!node) {
+        kprintf("touch: %s: cannot create file\n", path);
         return 1;
     }
 
-    if (!parent->ops || !parent->ops->mkdir) {
-        kprintf("touch: not supported on this filesystem\n");
-        return 1;
-    }
-
-    /* Use the filesystem's mkdir-equivalent to create an empty file node.
-     * ramfs exposes file creation through its finddir/mkdir path. */
-    (void)filename;
-    kprintf("touch: not yet implemented (requires ramfs_create_file).\n");
     return 0;
 }
 
-REGISTER_SHELL_COMMAND(touch, "Create empty file (stub)", "fs", cmd_touch);
+REGISTER_SHELL_COMMAND(touch, "Create empty file", "fs", cmd_touch);

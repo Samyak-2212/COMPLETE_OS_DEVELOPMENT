@@ -9,6 +9,7 @@
 #include "shell/shell_core.h"
 #include "lib/printf.h"
 #include "lib/string.h"
+#include "lib/debug.h"
 #include "mm/heap.h"
 #include "fs/vfs.h"
 #include "drivers/input/input_event.h"
@@ -97,24 +98,99 @@ int shell_execute(const char *line) {
     if (!line || strlen(line) == 0) return 0;
 
     char *buf = kmalloc(strlen(line) + 1);
-    if (!buf) return -1;
+    char *out = kmalloc(strlen(line) * 2 + 1); /* Space for extra \0s */
+    if (!buf || !out) return -1;
+    
+    memset(buf, 0, strlen(line) + 1);
+    memset(out, 0, strlen(line) * 2 + 1);
     strcpy(buf, line);
 
     char *argv[SHELL_MAX_ARGS];
     int   argc = 0;
 
-    /* Whitespace tokenizer */
-    char *p = buf;
+    char *p = buf; /* read pointer */
+    char *w = out; /* write pointer */
+    
+    char quote   = 0;
+    bool escaped = false;
+    bool in_token = false;
+
     while (*p && argc < SHELL_MAX_ARGS) {
-        while (*p == ' ') *p++ = '\0';
-        if (*p == '\0') break;
-        argv[argc++] = p;
-        while (*p && *p != ' ') p++;
+        if (escaped) {
+            if (!in_token) { argv[argc++] = w; in_token = true; }
+            *w++ = *p++;
+            escaped = false;
+            continue;
+        }
+
+        if (*p == '\\' && quote != '\'') {
+            escaped = true;
+            p++;
+            continue;
+        }
+
+        if (quote) {
+            if (*p == quote) {
+                quote = 0;
+            } else {
+                if (!in_token) { argv[argc++] = w; in_token = true; }
+                *w++ = *p;
+            }
+            p++;
+            continue;
+        }
+
+        if (*p == '"' || *p == '\'') {
+            quote = *p++;
+            if (!in_token) { argv[argc++] = w; in_token = true; }
+            continue;
+        }
+
+        if (*p == ' ') {
+            if (in_token) {
+                *w++ = '\0';
+                in_token = false;
+            }
+            p++;
+            continue;
+        }
+
+        if (*p == '>') {
+            if (in_token) {
+                *w++ = '\0';
+                in_token = false;
+            }
+            argv[argc++] = w;
+            *w++ = *p++;
+            if (*p == '>') {
+                *w++ = *p++;
+            }
+            *w++ = '\0';
+            continue;
+        }
+
+        /* Generic character */
+        if (!in_token) {
+            argv[argc++] = w;
+            in_token = true;
+        }
+        *w++ = *p++;
+    }
+
+    if (in_token) {
+        *w = '\0';
     }
 
     if (argc == 0) {
         kfree(buf);
+        kfree(out);
         return 0;
+    }
+
+    /* DEBUG: Log argv to serial only */
+    debug_log(DEBUG_LEVEL_INFO, "SHELL", "exec: argc=%d", argc);
+    for (int i = 0; i < argc; i++) {
+        debug_log(DEBUG_LEVEL_INFO, "SHELL", "  argv[%d] = '%s'", i, argv[i]);
     }
 
     int ret = -1;
@@ -132,6 +208,7 @@ int shell_execute(const char *line) {
     }
 
     kfree(buf);
+    kfree(out);
     return ret;
 }
 

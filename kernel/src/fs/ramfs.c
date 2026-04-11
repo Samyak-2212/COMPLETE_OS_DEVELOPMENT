@@ -88,12 +88,15 @@ static dirent_t *ramfs_readdir(vfs_node_t *node, uint32_t index) {
 }
 
 static vfs_node_t *ramfs_finddir(vfs_node_t *node, const char *name) {
-    if ((node->flags & FS_DIRECTORY) != FS_DIRECTORY) return NULL;
+    if ((node->flags & FS_DIRECTORY) == 0) return NULL;
     
     ramfs_internal_t *priv = (ramfs_internal_t*)node->impl;
     if (!priv) return NULL;
     
+    // debug_log(DEBUG_LEVEL_INFO, "RAMFS", "finddir: searching for '%s' in '%s' (%d children)", name, node->name, priv->child_count);
+
     for (int i = 0; i < priv->child_count; i++) {
+        // debug_log(DEBUG_LEVEL_INFO, "RAMFS", "  check: '%s'", priv->children[i]->name);
         if (strcmp(priv->children[i]->name, name) == 0) {
             return priv->children[i];
         }
@@ -120,6 +123,25 @@ static vfs_node_t *ramfs_create_dir(vfs_node_t *parent, const char *name) {
     return node;
 }
 
+static vfs_node_t *ramfs_create_file(vfs_node_t *parent, const char *name) {
+    ramfs_internal_t *priv = (ramfs_internal_t*)parent->impl;
+    if (priv->child_count >= RAMFS_MAX_CHILDREN) return NULL;
+
+    vfs_node_t *node = kmalloc(sizeof(vfs_node_t));
+    memset(node, 0, sizeof(vfs_node_t));
+    strcpy(node->name, name);
+    node->flags = FS_FILE;
+    node->mask = parent->mask;
+    node->ops = &ramfs_ops;
+
+    ramfs_internal_t *node_priv = kmalloc(sizeof(ramfs_internal_t));
+    memset(node_priv, 0, sizeof(ramfs_internal_t));
+    node->impl = node_priv;
+
+    priv->children[priv->child_count++] = node;
+    return node;
+}
+
 vfs_node_t *ramfs_init(void) {
     ramfs_ops.read = ramfs_read;
     ramfs_ops.write = ramfs_write;
@@ -128,6 +150,7 @@ vfs_node_t *ramfs_init(void) {
     ramfs_ops.readdir = ramfs_readdir;
     ramfs_ops.finddir = ramfs_finddir;
     ramfs_ops.mkdir = ramfs_create_dir;
+    ramfs_ops.create = ramfs_create_file;
 
     /* Create root node */
     vfs_node_t *root = kmalloc(sizeof(vfs_node_t));

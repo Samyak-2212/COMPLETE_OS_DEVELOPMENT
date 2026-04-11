@@ -34,18 +34,11 @@ int disk_read_sectors(ata_drive_t *drive, uint64_t lba, uint8_t count, uint8_t *
 int partition_parse_mbr(ata_drive_t *drive) {
     if (!drive || !drive->present) return -1;
     
-    /* Sector buffer - must be DMA safe and physically contiguous. 
-     * We map it as PAGE_NOCACHE to ensure CPU sees what the HBA writes. */
-    uint64_t phys_sector = pmm_alloc_page();
-    uint64_t virt_sector = 0xffffffffb0000000; /* Temporary DMA scratch area */
-    vmm_map_page(virt_sector, phys_sector, PAGE_PRESENT | PAGE_WRITABLE | PAGE_NOCACHE);
-    
-    uint8_t *sector = (uint8_t *)virt_sector;
+    uint8_t *sector = kmalloc(4096);
     memset(sector, 0, 4096);
     
     if (disk_read_sectors(drive, 0, 1, sector) == 0) {
-        vmm_unmap_page(virt_sector);
-        pmm_free_page(phys_sector);
+        kfree(sector);
         return -1;
     }
     
@@ -54,8 +47,7 @@ int partition_parse_mbr(ata_drive_t *drive) {
         kprintf("       [PART] Warning: Invalid MBR signature on %s (0x%02x%02x)\n", 
                 drive->drive_name, sector[511], sector[510]);
 
-        vmm_unmap_page(virt_sector);
-        pmm_free_page(phys_sector);
+        kfree(sector);
         return 0; 
     }
     
@@ -90,8 +82,7 @@ int partition_parse_mbr(ata_drive_t *drive) {
         found++;
     }
     
-    vmm_unmap_page(virt_sector);
-    pmm_free_page(phys_sector);
+    kfree(sector);
     return found;
 }
 

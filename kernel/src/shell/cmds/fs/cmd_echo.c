@@ -53,6 +53,11 @@ static int cmd_echo(int argc, char **argv) {
 
     vfs_node_t *node = vfs_resolve_path(path);
     if (!node) {
+        /* Attempt to create the file if it doesn't exist */
+        node = vfs_create(path);
+    }
+
+    if (!node) {
         kprintf("echo: %s: cannot open for writing\n", path);
         return 1;
     }

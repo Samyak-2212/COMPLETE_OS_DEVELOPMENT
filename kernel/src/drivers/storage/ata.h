@@ -60,7 +60,7 @@ typedef enum {
     DISK_TYPE_NVME
 } disk_type_t;
 
-typedef struct {
+typedef struct ata_drive_t {
     disk_type_t type;
     void *device_data; /* Implementation specific (e.g. AHCI port) */
     int present;
@@ -71,6 +71,7 @@ typedef struct {
     uint64_t total_sectors;
     char model[41];
     char drive_name[4]; /* e.g. "hda" */
+    int (*read_sectors)(struct ata_drive_t *drive, uint64_t lba, uint8_t count, uint8_t *buffer);
 } ata_drive_t;
 
 /* Global initialization and registry */

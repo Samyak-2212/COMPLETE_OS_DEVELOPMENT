@@ -21,6 +21,9 @@ typedef struct {
     hba_cmd_header_t *cmd_list;
     void *fis_base;
     hba_cmd_tbl_t *cmd_tbl;
+    uint64_t bounce_phys;
+    void *bounce_virt;
+    uint8_t bus, device, func;
 } sata_port_info_t;
 
 static sata_port_info_t port_infos[32];
@@ -34,37 +37,18 @@ static ata_drive_t sata_drives[32];
  */
 
 static int ahci_stop_port(hba_port_t *port) {
-    /* 1. Clear ST (bit 0) */
+    /* 1. Clear ST (bit 0) and FRE (bit 4) */
     port->cmd &= ~(1 << 0);
-
-    /* 2. Wait for CR (bit 15) to clear */
-    for (int i = 0; i < 1000000; i++) {
-        if (!(port->cmd & (1 << 15))) break;
-        __asm__ volatile("pause");
-    }
-
-    /* 3. Clear FRE (bit 4) */
     port->cmd &= ~(1 << 4);
 
-    /* 4. Wait for FR (bit 14) to clear */
-    for (int i = 0; i < 1000000; i++) {
-        if (!(port->cmd & (1 << 14))) break;
+    /* 2. Wait for CR (bit 15) and FR (bit 14) to clear */
+    int timeout = 1000000;
+    while (timeout--) {
+        if (!(port->cmd & (1 << 15)) && !(port->cmd & (1 << 14))) return 1;
         __asm__ volatile("pause");
     }
-    
-    /* 5. If STILL not stopped, perform a localized Port Reset */
-    if ((port->cmd & (1 << 15)) || (port->cmd & (1 << 14))) {
-        port->sctl = (port->sctl & ~0x0F) | 0x01; /* DET=1 (Perform Reset) */
-        for (int i = 0; i < 1000000; i++) __asm__ volatile("pause");
-        port->sctl &= ~0x0F; /* DET=0 (End Reset) */
-        for (int i = 0; i < 1000000; i++) __asm__ volatile("pause");
-        
-        /* Final check */
-        if (!(port->cmd & (1 << 15)) && !(port->cmd & (1 << 14))) return 1;
-        return 0;
-    }
 
-    return 1;
+    return 0;
 }
 
 static void ahci_start_port(hba_port_t *port) {
@@ -86,41 +70,127 @@ static int ahci_find_cmdslot(hba_port_t *port) {
     return -1;
 }
 
+int ahci_identify(ata_drive_t *drive) {
+    sata_port_info_t *info = (sata_port_info_t *)drive->device_data;
+    hba_port_t *port = info->port_reg;
+
+    int slot = ahci_find_cmdslot(port);
+    if (slot == -1) return 0;
+
+    hba_cmd_header_t *cmdhdr = info->cmd_list + slot;
+    cmdhdr->cfl = sizeof(fis_reg_h2d_t) / sizeof(uint32_t);
+    cmdhdr->w = 0;
+    cmdhdr->prdtl = 1;
+
+    hba_cmd_tbl_t *cmdtbl = info->cmd_tbl;
+    memset(cmdtbl, 0, sizeof(hba_cmd_tbl_t));
+
+    cmdtbl->prdt_entry[0].dba = info->bounce_phys;
+    cmdtbl->prdt_entry[0].dbc = 512 - 1;
+    cmdtbl->prdt_entry[0].i = 1;
+
+    /* Clear errors and interrupts */
+    port->serr = 0xFFFFFFFF;
+    port->is = 0xFFFFFFFF;
+
+    /* Wait for port not busy */
+    int timeout = 1000000;
+    while ((port->tfd & (ATA_SR_BSY | ATA_SR_DRQ)) && timeout--) __asm__ volatile("pause");
+
+    fis_reg_h2d_t *fis = (fis_reg_h2d_t *)(cmdtbl->cfis);
+    fis->fis_type = FIS_TYPE_REG_H2D;
+    fis->c = 1;
+    fis->command = 0xEC; /* IDENTIFY DEVICE */
+
+    /* Wait for port not busy */
+    timeout = 1000000;
+    while ((port->tfd & (ATA_SR_BSY | ATA_SR_DRQ)) && timeout--) __asm__ volatile("pause");
+
+    port->is = 0xFFFFFFFF;
+    port->ci = (1 << slot);
+
+    /* Posted write flush */
+    (void)port->ci;
+
+    timeout = 1000000;
+    while (timeout--) {
+        if ((port->ci & (1 << slot)) == 0) break;
+        __asm__ volatile("pause");
+    }
+
+    if (timeout <= 0) {
+        kprintf("       Port %d: IDENTIFY Timeout (CI=0x%x, TFD=0x%x, IS=0x%x)\n", drive->drive_name[2] - 'a', port->ci, port->tfd, port->is);
+        return 0;
+    }
+
+    /* Verify mapping */
+    uint64_t v_phys = vmm_get_phys((uint64_t)info->bounce_virt);
+    if (v_phys != info->bounce_phys) {
+        kprintf("       Port %d: ERROR - Mapping mismatch! Virt %p -> Phys %lx (Expected %lx)\n", 
+                drive->drive_name[2] - 'a', info->bounce_virt, (unsigned long)v_phys, (unsigned long)info->bounce_phys);
+    }
+
+    uint16_t *buf = (uint16_t *)info->bounce_virt;
+    /* Extract model string (20 words at offset 27) */
+    for (int i = 0; i < 20; i++) {
+        drive->model[i * 2] = (char)(buf[27 + i] >> 8);
+        drive->model[i * 2 + 1] = (char)(buf[27 + i] & 0xFF);
+    }
+    drive->model[40] = '\0';
+
+    /* Extract capacity (LBA48) */
+    uint64_t sectors = *((uint64_t*)&buf[100]);
+    if (sectors == 0) sectors = *((uint32_t*)&buf[60]); /* LBA28 fallback */
+    drive->total_sectors = sectors;
+
+    return 1;
+}
+
 int ahci_read_sectors(ata_drive_t *drive, uint64_t lba, uint8_t count, uint8_t *buffer) {
     sata_port_info_t *info = (sata_port_info_t *)drive->device_data;
     hba_port_t *port = info->port_reg;
     
-    /* Wait for previous command to clear */
-    port->is = 0xFFFFFFFF; /* Clear interrupts */
+    /* Register access check/recovery path */
+    if (port->is == 0xFFFFFFFF) {
+        /* Re-enforce PCI Memory Space and Bus Master bits */
+        pci_write_word(info->bus, info->device, info->func, 0x04, 0x0007);
+        hba_mem_t *abar = (hba_mem_t *)(vmm_get_hhdm_offset() + (uint64_t)info->port_reg - ((uint64_t)info->port_reg % 0x1000));
+        abar->ghc |= (1 << 31);
+        (void)abar->ghc;
+        
+        if (port->is == 0xFFFFFFFF) {
+            kprintf("       Port %d: Fatal register access failure (ABORT)\n", drive->drive_name[2] - 'a');
+            return 0;
+        }
+    }
+    
+    port->serr = 0xFFFFFFFF;
+    port->is = 0xFFFFFFFF;
+
     int slot = ahci_find_cmdslot(port);
     if (slot == -1) return 0;
 
-    int timeout;
-
-    /* Get command header and table */
     hba_cmd_header_t *cmdhdr = info->cmd_list + slot;
     cmdhdr->cfl = sizeof(fis_reg_h2d_t) / sizeof(uint32_t);
-    cmdhdr->w = 0; /* Read */
-    cmdhdr->prdtl = 1; /* 1 PRDT entry */
+    cmdhdr->w = 0;
+    cmdhdr->prdtl = 1;
 
     hba_cmd_tbl_t *cmdtbl = info->cmd_tbl;
-    memset(cmdtbl, 0, sizeof(hba_cmd_tbl_t) + (cmdhdr->prdtl - 1) * sizeof(hba_prdt_entry_t));
+    memset(cmdtbl, 0, sizeof(hba_cmd_tbl_t));
 
-    /* Set up PRDT */
-    cmdtbl->prdt_entry[0].dba = vmm_get_phys((uint64_t)buffer);
-    cmdtbl->prdt_entry[0].dbc = (count << 9) - 1; /* 512 bytes per sector */
+    cmdtbl->prdt_entry[0].dba = info->bounce_phys;
+    cmdtbl->prdt_entry[0].dbc = (count << 9) - 1;
     cmdtbl->prdt_entry[0].i = 1;
 
-    /* Set up FIS */
-    fis_reg_h2d_t *fis = (fis_reg_h2d_t *)(&cmdtbl->cfis);
+    fis_reg_h2d_t *fis = (fis_reg_h2d_t *)(cmdtbl->cfis);
     fis->fis_type = FIS_TYPE_REG_H2D;
-    fis->c = 1; /* Command */
-    fis->command = 0x25; /* READ DMA EXT (LBA48) */
+    fis->c = 1;
+    fis->command = 0x25; /* READ DMA EXT */
 
     fis->lba0 = (uint8_t)lba;
     fis->lba1 = (uint8_t)(lba >> 8);
     fis->lba2 = (uint8_t)(lba >> 16);
-    fis->device = 1 << 6; /* LBA mode */
+    fis->device = 0x40; /* LBA mode */
 
     fis->lba3 = (uint8_t)(lba >> 24);
     fis->lba4 = (uint8_t)(lba >> 32);
@@ -129,10 +199,19 @@ int ahci_read_sectors(ata_drive_t *drive, uint64_t lba, uint8_t count, uint8_t *
     fis->countl = count;
     fis->counth = 0;
 
-    /* Issue command */
+    /* Wait for port not busy */
+    int timeout = 1000000;
+    while ((port->tfd & (ATA_SR_BSY | ATA_SR_DRQ)) && timeout--) __asm__ volatile("pause");
+
+    /* Memory Barrier before issue */
+    __asm__ volatile("sfence" ::: "memory");
+
+    port->is = 0xFFFFFFFF;
     port->ci = (1 << slot);
 
-    /* Wait for completion with timeout */
+    /* Posted write flush */
+    (void)port->ci;
+
     timeout = 1000000;
     while (timeout--) {
         if ((port->ci & (1 << slot)) == 0) break;
@@ -140,17 +219,15 @@ int ahci_read_sectors(ata_drive_t *drive, uint64_t lba, uint8_t count, uint8_t *
         __asm__ volatile("pause");
     }
     
-    /* Small settling delay for DMA/Memory Coherency */
-    for (int i = 0; i < 1000; i++) __asm__ volatile("pause");
+    if (timeout <= 0 || (port->is & (1 << 30))) {
+        kprintf("       Port %d: READ Timeout/Error (CI=0x%x, TFD=0x%x, IS=0x%x)\n", drive->drive_name[2] - 'a', port->ci, port->tfd, port->is);
+        return 0;
+    }
 
-    if (timeout <= 0) {
-        kprintf("       [AHCI] Read Timeout (CI=0x%x, IS=0x%x)\n", port->ci, port->is);
-        return 0;
-    }
-    if (port->is & (1 << 30)) {
-        kprintf("       [AHCI] Task File Error (TFD=0x%x)\n", port->tfd);
-        return 0;
-    }
+    /* Memory Barrier after DMA */
+    __asm__ volatile("lfence" ::: "memory");
+
+    memcpy(buffer, info->bounce_virt, count * 512);
     return 1;
 }
 
@@ -166,64 +243,65 @@ static int ahci_probe(void *device_info) {
 
 static int ahci_init(void *device_info) {
     pci_device_t *pci = (pci_device_t *)device_info;
+    uint8_t pci_bus = pci->bus;
+    uint8_t pci_dev = pci->device;
+    uint8_t pci_func = pci->function;
     
-    /* Find MMIO BAR (BAR5 usually is ABAR - AHCI Base Address Register) */
     uint64_t mmio_phys = 0;
     for (int i = 0; i < 6; i++) {
         if (pci->bars[i].type == PCI_BAR_TYPE_MMIO) {
             mmio_phys = pci->bars[i].address;
-            /* In modern systems, ABAR is BAR5 */
             if (i == 5) break; 
         }
     }
     
-    if (mmio_phys == 0) {
-        return -1;
-    }
+    if (mmio_phys == 0) return -1;
 
-    kprintf("       [AHCI] Found ABAR at phys 0x%lx\n", (unsigned long)mmio_phys);
+    /* Enforce PCI Command bits: Memory Space (bit 1) + Bus Master (bit 2) */
+    uint16_t pci_cmd = pci_read_word(pci->bus, pci->device, pci->function, 0x04);
+    pci_write_word(pci->bus, pci->device, pci->function, 0x04, pci_cmd | 0x06);
 
-    /* Map the ABAR (usually 4KB or 8KB, 1 page is enough for base registers) */
     uint64_t hhdm = vmm_get_hhdm_offset();
     uint64_t mmio_virt = mmio_phys + hhdm;
     vmm_map_page(mmio_virt, mmio_phys, PAGE_PRESENT | PAGE_WRITABLE | PAGE_NOCACHE);
+    vmm_map_page(mmio_virt + 0x1000, mmio_phys + 0x1000, PAGE_PRESENT | PAGE_WRITABLE | PAGE_NOCACHE);
     
     hba_mem_t *abar = (hba_mem_t *)mmio_virt;
 
-    /* 1. Enable AHCI Mode */
-    abar->ghc |= (1 << 31); /* AE: AHCI Enable */
+    /* 1. Global AHCI Enable */
+    abar->ghc |= (1 << 31);
+    (void)abar->ghc; /* Flush */
 
+    uint32_t pi = abar->pi;
+    uint32_t vs = abar->vs;
     uint32_t cap = abar->cap;
-    uint32_t pi  = abar->pi;
-    uint32_t vs  = abar->vs;
-    kprintf("[AHCI] ");
-    kprintf_set_color(0x00CCCCCC, 0x001A1A2E);
-    kprintf("SATA Controller: Version %d.%d, Ports: %d, Cap: 0x%x\n", 
+    
+    kprintf("[AHCI] SATA Controller: Version %d.%d, Ports: %d, Cap: 0x%x\n", 
             (vs >> 16) & 0xFFFF, (vs & 0xFFFF), 
             32 - __builtin_clz(pi), cap);
 
-    /* Log which ports have devices */
     for (int i = 0; i < 32; i++) {
         if (pi & (1 << i)) {
-            /* Port registers start at 0x100, each port is 0x80 bytes */
             hba_port_t *port = &abar->ports[i];
-            uint32_t ssts = port->ssts; /* 0x28: Port x Serial ATA Status */
-            uint8_t det = ssts & 0x0F;
             
-            if (det == 0x03) { /* Device present and communication established */
-                kprintf("       Port %d: Device connected\n", i);
-                
-                /* 1. Stop Port */
-                if (!ahci_stop_port(port)) {
-                    kprintf("       Port %d: Error - Failed to stop port (PxTFD=0x%x)\n", i, port->tfd);
+            /* Wait for Link Training (Up to 1s) */
+            int timeout = 1000000;
+            while ((port->ssts & 0x0F) != 0x03 && timeout--) __asm__ volatile("pause");
+
+            uint8_t det = port->ssts & 0x0F;
+            if (det == 0x03) {
+                if (port->sig != 0x00000101) {
+                    kprintf("       Port %d: Connected (Sig=0x%x) - Skipping non-SATA\n", i, port->sig);
                     continue;
                 }
 
-                /* Clear error and interrupt status */
+                kprintf("       Port %d: SATA Drive Connected\n", i);
+                
+                if (!ahci_stop_port(port)) continue;
+
                 port->serr = 0xFFFFFFFF;
                 port->is = 0xFFFFFFFF;
 
-                /* 2. Allocate and Map DMA memory for this port */
                 uint64_t phys_clb = pmm_alloc_page();
                 uint64_t phys_fb  = pmm_alloc_page();
                 uint64_t phys_ct  = pmm_alloc_page();
@@ -232,58 +310,55 @@ static int ahci_init(void *device_info) {
                 uint64_t virt_fb  = phys_fb + hhdm;
                 uint64_t virt_ct  = phys_ct + hhdm;
                 
-                vmm_map_page(virt_clb, phys_clb, PAGE_PRESENT | PAGE_WRITABLE | PAGE_NOCACHE);
-                vmm_map_page(virt_fb, phys_fb, PAGE_PRESENT | PAGE_WRITABLE | PAGE_NOCACHE);
-                vmm_map_page(virt_ct, phys_ct, PAGE_PRESENT | PAGE_WRITABLE | PAGE_NOCACHE);
+                uint64_t bounce_phys = pmm_alloc_pages(32);
+                uint64_t bounce_virt = bounce_phys + hhdm; /* STABLE HHDM MAPPING */
+                
+                kprintf("       Port %d: DMA CLB=0x%lx, FB=0x%lx, CT=0x%lx, BOUNCE=0x%lx\n", 
+                        i, (unsigned long)phys_clb, (unsigned long)phys_fb, (unsigned long)phys_ct, (unsigned long)bounce_phys);
 
-                kprintf("       Port %d: DMA CLB=0x%lx, FB=0x%lx, CT=0x%lx\n", 
-                        i, (unsigned long)phys_clb, (unsigned long)phys_fb, (unsigned long)phys_ct);
-
-                /* 3. Configure Port Registers */
                 port->clb = (uint32_t)phys_clb;
                 port->clbu = (uint32_t)(phys_clb >> 32);
                 port->fb = (uint32_t)phys_fb;
                 port->fbu = (uint32_t)(phys_fb >> 32);
 
-                /* Initialize all 32 command slots to use the same command table 
-                 * This is safe because we only issue 1 command at a time. */
                 hba_cmd_header_t *clist = (hba_cmd_header_t *)virt_clb;
+                memset(clist, 0, 4096);
                 for (int j = 0; j < 32; j++) {
                     clist[j].ctba = phys_ct;
                 }
 
-                /* 4. Start Port */
                 ahci_start_port(port);
 
-                /* Store info for read helper */
                 port_infos[i].port_reg = port;
                 port_infos[i].cmd_list = clist;
                 port_infos[i].fis_base = (void *)virt_fb;
                 port_infos[i].cmd_tbl = (hba_cmd_tbl_t *)virt_ct;
+                port_infos[i].bounce_phys = bounce_phys;
+                port_infos[i].bounce_virt = (void *)bounce_virt;
+                port_infos[i].bounce_virt = (void *)bounce_virt;
+                port_infos[i].bus = pci_bus;
+                port_infos[i].device = pci_dev;
+                port_infos[i].func = pci_func;
 
-                /* Register proxy drive for VFS/Partition parser */
                 ata_drive_t *drive = &sata_drives[i];
                 memset(drive, 0, sizeof(ata_drive_t));
                 drive->type = DISK_TYPE_SATA;
                 drive->device_data = (void *)&port_infos[i];
                 drive->present = 1;
-                
-                /* Deterministic naming: sda, sdb... based on port index */
+                drive->read_sectors = ahci_read_sectors;
                 drive->drive_name[0] = 's';
                 drive->drive_name[1] = 'd';
                 drive->drive_name[2] = 'a' + i;
                 drive->drive_name[3] = '\0';
 
-                /* 5. Wait for SATA Link training to complete after reset */
-                for (int i = 0; i < 1000000; i++) {
-                    if ((port->ssts & 0x0F) == 0x03) break;
-                    __asm__ volatile("pause");
+                /* Perform IDENTIFY to get model and size */
+                if (ahci_identify(drive)) {
+                    kprintf("       Port %d: Model: %s, Capacity: %llu sectors\n", i, drive->model, (unsigned long long)drive->total_sectors);
+                } else {
+                    kprintf("       Port %d: Warning - IDENTIFY failed\n", i);
                 }
 
-                /* Register whole-disk node in /dev (e.g. /dev/sda) */
-                devfs_register_block(drive->drive_name, drive,
-                                     0, drive->total_sectors);
-
+                devfs_register_block(drive->drive_name, drive, 0, drive->total_sectors);
                 partition_parse_mbr(drive);
             }
         }
