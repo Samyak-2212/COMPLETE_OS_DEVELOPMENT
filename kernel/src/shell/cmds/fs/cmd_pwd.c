@@ -13,4 +13,4 @@ static int cmd_pwd(int argc, char **argv) {
     return 0;
 }
 
-REGISTER_SHELL_COMMAND(pwd, "Print working directory", "fs", cmd_pwd);
+REGISTER_SHELL_COMMAND(pwd, "", "", "Print working directory", "Print working directory", "fs", cmd_pwd);

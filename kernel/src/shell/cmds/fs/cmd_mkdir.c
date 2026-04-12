@@ -25,4 +25,4 @@ static int cmd_mkdir(int argc, char **argv) {
     return 0;
 }
 
-REGISTER_SHELL_COMMAND(mkdir, "Create directory", "fs", cmd_mkdir);
+REGISTER_SHELL_COMMAND(mkdir, "<dir>", "", "Create directory", "Create directory", "fs", cmd_mkdir);

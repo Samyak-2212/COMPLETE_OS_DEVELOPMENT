@@ -52,4 +52,4 @@ static int cmd_ls(int argc, char **argv) {
     return 0;
 }
 
-REGISTER_SHELL_COMMAND(ls, "List directory contents", "fs", cmd_ls);
+REGISTER_SHELL_COMMAND_EXT(ls, "[path]", "-l   Use a long listing format\n  -a   Do not ignore entries starting with .", "List directory contents", "Lists items in current directory or specified path.", "fs", cmd_ls, true);

@@ -22,4 +22,4 @@ static int cmd_colortest(int argc, char **argv) {
     return 0;
 }
 
-REGISTER_SHELL_COMMAND(colortest, "Terminal color test", "diag", cmd_colortest);
+REGISTER_SHELL_COMMAND(colortest, "", "", "Terminal color test", "Terminal color test", "diag", cmd_colortest);

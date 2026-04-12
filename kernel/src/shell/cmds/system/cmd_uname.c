@@ -13,4 +13,4 @@ static int cmd_uname(int argc, char **argv) {
     return 0;
 }
 
-REGISTER_SHELL_COMMAND(uname, "Print system information", "system", cmd_uname);
+REGISTER_SHELL_COMMAND(uname, "", "", "Print system information", "Print system information", "system", cmd_uname);

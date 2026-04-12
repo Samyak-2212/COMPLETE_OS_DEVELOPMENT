@@ -13,4 +13,4 @@ static int cmd_cp(int argc, char **argv) {
     return 0;
 }
 
-REGISTER_SHELL_COMMAND(cp, "Copy file (stub)", "fs", cmd_cp);
+REGISTER_SHELL_COMMAND(cp, "<src> <dst>", "", "Copy file (stub)", "Copy file (stub)", "fs", cmd_cp);

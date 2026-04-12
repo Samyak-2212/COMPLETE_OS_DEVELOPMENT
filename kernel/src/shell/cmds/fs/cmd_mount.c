@@ -14,4 +14,4 @@ static int cmd_mount(int argc, char **argv) {
     return 0;
 }
 
-REGISTER_SHELL_COMMAND(mount, "Mount filesystem (stub)", "fs", cmd_mount);
+REGISTER_SHELL_COMMAND(mount, "<dev> <path>", "", "Mount filesystem (stub)", "Mount filesystem (stub)", "fs", cmd_mount);

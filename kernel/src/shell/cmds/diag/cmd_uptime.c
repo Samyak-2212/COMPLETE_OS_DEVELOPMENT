@@ -22,4 +22,4 @@ static int cmd_uptime(int argc, char **argv) {
     return 0;
 }
 
-REGISTER_SHELL_COMMAND(uptime, "System uptime", "diag", cmd_uptime);
+REGISTER_SHELL_COMMAND(uptime, "", "", "System uptime", "System uptime", "diag", cmd_uptime);

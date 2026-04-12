@@ -23,4 +23,4 @@ static int cmd_free(int argc, char **argv) {
     return 0;
 }
 
-REGISTER_SHELL_COMMAND(free, "Display memory usage", "diag", cmd_free);
+REGISTER_SHELL_COMMAND(free, "", "", "Display memory usage", "Display memory usage", "diag", cmd_free);

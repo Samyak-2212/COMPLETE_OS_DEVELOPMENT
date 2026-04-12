@@ -77,4 +77,4 @@ static int cmd_echo(int argc, char **argv) {
     return 0;
 }
 
-REGISTER_SHELL_COMMAND(echo, "Print text to terminal", "fs", cmd_echo);
+REGISTER_SHELL_COMMAND(echo, "[text...]", "", "Print text to terminal", "Print text to terminal", "fs", cmd_echo);

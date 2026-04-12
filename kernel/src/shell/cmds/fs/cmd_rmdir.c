@@ -13,4 +13,4 @@ static int cmd_rmdir(int argc, char **argv) {
     return 0;
 }
 
-REGISTER_SHELL_COMMAND(rmdir, "Remove directory (stub)", "fs", cmd_rmdir);
+REGISTER_SHELL_COMMAND(rmdir, "<dir>", "", "Remove directory (stub)", "Remove directory (stub)", "fs", cmd_rmdir);

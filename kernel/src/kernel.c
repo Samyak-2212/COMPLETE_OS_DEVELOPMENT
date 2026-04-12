@@ -18,6 +18,7 @@
 #include "lib/string.h"
 #include "lib/debug.h"
 #include "lib/serial.h"
+#include "lib/klog.h"
 #include "hal/gdt.h"
 #include "hal/idt.h"
 #include "hal/pic.h"
@@ -306,6 +307,9 @@ void kmain(void) {
     
     /* Late-allocate terminal backbuffers now that heap is online */
     terminal_allocate_backbuffer(&main_terminal);
+    
+    /* Stop capturing kernel logs so dmesg only contains the boot process */
+    klog_stop_recording();
     
     /* Clear boot logs for a fresh shell entry */
     terminal_clear(&main_terminal);

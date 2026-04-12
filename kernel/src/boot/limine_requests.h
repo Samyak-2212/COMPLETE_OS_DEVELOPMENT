@@ -31,4 +31,5 @@ struct limine_executable_address_response *limine_get_exec_addr(void);
 /* Get firmware type (BIOS vs UEFI) response */
 struct limine_firmware_type_response *limine_get_firmware_type(void);
 
+
 #endif /* NEXUS_BOOT_LIMINE_REQUESTS_H */

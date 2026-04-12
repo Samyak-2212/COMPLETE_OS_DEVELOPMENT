@@ -32,4 +32,4 @@ static int cmd_lspci(int argc, char **argv) {
     return 0;
 }
 
-REGISTER_SHELL_COMMAND(lspci, "List PCI devices", "diag", cmd_lspci);
+REGISTER_SHELL_COMMAND(lspci, "", "", "List PCI devices", "List PCI devices", "diag", cmd_lspci);

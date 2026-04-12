@@ -13,4 +13,4 @@ static int cmd_df(int argc, char **argv) {
     return 0;
 }
 
-REGISTER_SHELL_COMMAND(df, "Disk free space (stub)", "fs", cmd_df);
+REGISTER_SHELL_COMMAND(df, "", "", "Disk free space (stub)", "Disk free space (stub)", "fs", cmd_df);

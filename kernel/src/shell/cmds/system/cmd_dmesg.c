@@ -13,4 +13,4 @@ static int cmd_dmesg(int argc, char **argv) {
     return 0;
 }
 
-REGISTER_SHELL_COMMAND(dmesg, "Display kernel message buffer", "system", cmd_dmesg);
+REGISTER_SHELL_COMMAND(dmesg, "", "", "Display kernel message buffer", "Display kernel message buffer", "system", cmd_dmesg);

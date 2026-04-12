@@ -89,6 +89,7 @@ static volatile struct limine_firmware_type_request firmware_type_request = {
     .revision = 0
 };
 
+
 /* ── Accessor functions ─────────────────────────────────────────────────── */
 /* These allow other translation units to access the responses. */
 
@@ -119,3 +120,4 @@ struct limine_executable_address_response *limine_get_exec_addr(void) {
 struct limine_firmware_type_response *limine_get_firmware_type(void) {
     return firmware_type_request.response;
 }
+

@@ -13,4 +13,4 @@ static int cmd_kill(int argc, char **argv) {
     return 0;
 }
 
-REGISTER_SHELL_COMMAND(kill, "Terminate process (stub)", "process", cmd_kill);
+REGISTER_SHELL_COMMAND(kill, "<pid>", "", "Terminate process (stub)", "Terminate process (stub)", "process", cmd_kill);

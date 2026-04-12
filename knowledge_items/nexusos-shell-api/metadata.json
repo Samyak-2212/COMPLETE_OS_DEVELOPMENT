@@ -1,0 +1,5 @@
+{
+  "title": "NexusOS Shell API Reference",
+  "summary": "Instructs agents on how to create shell commands, explicitly using the macro system to populate dynamic help interfaces appropriately.",
+  "references": ["artifacts/SHELL_API.md"]
+}

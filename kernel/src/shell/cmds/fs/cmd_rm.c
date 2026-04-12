@@ -13,4 +13,4 @@ static int cmd_rm(int argc, char **argv) {
     return 0;
 }
 
-REGISTER_SHELL_COMMAND(rm, "Remove file (stub)", "fs", cmd_rm);
+REGISTER_SHELL_COMMAND(rm, "<file>", "", "Remove file (stub)", "Remove file (stub)", "fs", cmd_rm);

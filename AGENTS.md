@@ -11,6 +11,7 @@ They are the authoritative source of truth for this project.
 4. `knowledge_items/nexusos-task-tracker/artifacts/task.md` — phase-by-phase task checklist
 5. `knowledge_items/nexusos-bug-pool/artifacts/bug_pool.md` — open bugs that may affect your work
 6. `knowledge_items/nexusos-implementation-plan/artifacts/implementation_plan.md` — full architecture spec (read only the sections relevant to your phase)
+7. `knowledge_items/nexusos-shell-api/artifacts/SHELL_API.md` — instructions for shell command creation and automating `--help` documentation
 
 ## Optional Reading
 

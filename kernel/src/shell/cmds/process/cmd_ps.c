@@ -13,4 +13,4 @@ static int cmd_ps(int argc, char **argv) {
     return 0;
 }
 
-REGISTER_SHELL_COMMAND(ps, "Process list (stub)", "process", cmd_ps);
+REGISTER_SHELL_COMMAND(ps, "", "", "Process list (stub)", "Process list (stub)", "process", cmd_ps);

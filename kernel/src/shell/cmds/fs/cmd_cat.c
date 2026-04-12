@@ -44,4 +44,4 @@ static int cmd_cat(int argc, char **argv) {
     return 0;
 }
 
-REGISTER_SHELL_COMMAND(cat, "Concatenate and print files", "fs", cmd_cat);
+REGISTER_SHELL_COMMAND(cat, "<file>", "", "Concatenate and print files", "Concatenate and print files", "fs", cmd_cat);

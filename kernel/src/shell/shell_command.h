@@ -9,6 +9,7 @@
 #define NEXUS_SHELL_COMMAND_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 /* ── Constants ─────────────────────────────────────────────────────────── */
 
@@ -26,9 +27,13 @@ typedef int (*shell_cmd_handler_t)(int argc, char **argv);
  */
 typedef struct {
     const char          *name;
+    const char          *args;
+    const char          *options;
     const char          *description;
+    const char          *usage_help;
     const char          *category;   /* "system", "fs", "diag", "process" */
     shell_cmd_handler_t  handler;
+    bool                 no_h_help;  /* if true, restrict help intercept to --help only */
 } shell_command_t;
 
 /*
@@ -43,14 +48,21 @@ typedef struct {
  * bounded by __shell_commands_start / __shell_commands_end.
  * shell_core.c iterates them at runtime — no manual table edits needed.
  */
-#define REGISTER_SHELL_COMMAND(cmd_name, desc, cat, func)                      \
+#define REGISTER_SHELL_COMMAND_EXT(cmd_name, cmd_args, cmd_opts, desc, usage, cat, func, no_h) \
     static const shell_command_t __shell_cmd_##cmd_name                        \
         __attribute__((used, section(".shell_commands"), aligned(8))) = {       \
             .name        = #cmd_name,                                           \
+            .args        = cmd_args,                                            \
+            .options     = cmd_opts,                                            \
             .description = desc,                                                \
+            .usage_help  = usage,                                               \
             .category    = cat,                                                 \
-            .handler     = func                                                 \
+            .handler     = func,                                                \
+            .no_h_help   = no_h                                                 \
         }
+
+#define REGISTER_SHELL_COMMAND(cmd_name, cmd_args, cmd_opts, desc, usage, cat, func) \
+    REGISTER_SHELL_COMMAND_EXT(cmd_name, cmd_args, cmd_opts, desc, usage, cat, func, false)
 
 /* ── Linker-provided section boundaries (defined by x86_64.lds) ─────────── */
 

@@ -48,3 +48,7 @@ void klog_dump(void) {
     
     klog_active = true;
 }
+
+void klog_stop_recording(void) {
+    klog_active = false;
+}

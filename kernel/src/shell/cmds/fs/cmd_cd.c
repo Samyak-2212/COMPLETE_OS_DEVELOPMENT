@@ -30,4 +30,4 @@ static int cmd_cd(int argc, char **argv) {
     return 0;
 }
 
-REGISTER_SHELL_COMMAND(cd, "Change directory", "fs", cmd_cd);
+REGISTER_SHELL_COMMAND(cd, "<path>", "", "Change directory", "Change directory", "fs", cmd_cd);

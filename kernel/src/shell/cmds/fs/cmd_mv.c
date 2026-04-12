@@ -13,4 +13,4 @@ static int cmd_mv(int argc, char **argv) {
     return 0;
 }
 
-REGISTER_SHELL_COMMAND(mv, "Move/rename file (stub)", "fs", cmd_mv);
+REGISTER_SHELL_COMMAND(mv, "<src> <dst>", "", "Move/rename file (stub)", "Move/rename file (stub)", "fs", cmd_mv);

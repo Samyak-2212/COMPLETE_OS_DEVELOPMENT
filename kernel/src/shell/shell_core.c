@@ -204,6 +204,15 @@ int shell_execute(const char *line) {
          cmd < __shell_commands_end;
          cmd++) {
         if (strcmp(argv[0], cmd->name) == 0) {
+            /* Global Documentation Interceptor */
+            if (argc == 2 && (strcmp(argv[1], "--help") == 0 || 
+                             (!cmd->no_h_help && strcmp(argv[1], "-h") == 0))) {
+                kprintf("\033[1;36mUsage:\033[0m %s [OPTIONS] [ARGS]\n\n", cmd->name);
+                kprintf("  %s\n\n", cmd->usage_help);
+                ret = 0;
+                break;
+            }
+            
             ret = cmd->handler(argc, argv);
             break;
         }

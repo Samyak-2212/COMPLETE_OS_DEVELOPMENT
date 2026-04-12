@@ -32,4 +32,4 @@ static int cmd_touch(int argc, char **argv) {
     return 0;
 }
 
-REGISTER_SHELL_COMMAND(touch, "Create empty file", "fs", cmd_touch);
+REGISTER_SHELL_COMMAND(touch, "<file>", "", "Create empty file", "Create empty file", "fs", cmd_touch);

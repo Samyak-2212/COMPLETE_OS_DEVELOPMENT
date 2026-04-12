@@ -13,4 +13,4 @@ static int cmd_umount(int argc, char **argv) {
     return 0;
 }
 
-REGISTER_SHELL_COMMAND(umount, "Unmount filesystem (stub)", "fs", cmd_umount);
+REGISTER_SHELL_COMMAND(umount, "<path>", "", "Unmount filesystem (stub)", "Unmount filesystem (stub)", "fs", cmd_umount);

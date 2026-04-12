@@ -13,4 +13,4 @@ static int cmd_clear(int argc, char **argv) {
     return 0;
 }
 
-REGISTER_SHELL_COMMAND(clear, "Clear terminal screen", "system", cmd_clear);
+REGISTER_SHELL_COMMAND(clear, "", "", "Clear terminal screen", "Clear terminal screen", "system", cmd_clear);
