@@ -43,4 +43,11 @@ typedef struct {
 #define MOD_ALT     (1 << 2)
 #define MOD_CAPSLOCK (1 << 3)
 
+/* ── Custom Key codes (ASCII field for special keys) ─────────────────────── */
+#define KEY_UP      0x80
+#define KEY_DOWN    0x81
+#define KEY_LEFT    0x82
+#define KEY_RIGHT   0x83
+#define KEY_DELETE  0x7F  /* Standard DEL */
+
 #endif /* NEXUS_DRIVERS_INPUT_EVENT_H */

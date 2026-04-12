@@ -30,6 +30,12 @@ extern const shell_command_t __shell_commands_end[];
 static char       cwd[SHELL_MAX_LINE_LEN] = "/";
 static vfs_node_t *cwd_node               = NULL;
 
+/* ── Shell History ──────────────────────────────────────────────────────── */
+
+#define SHELL_MAX_HISTORY 32
+static char shell_history[SHELL_MAX_HISTORY][SHELL_MAX_LINE_LEN];
+static int  history_count = 0;
+
 /* Returns the current working directory path string */
 const char *shell_get_cwd(void) {
     return cwd;
@@ -225,8 +231,16 @@ void shell_run(void) {
 
     while (1) {
         kprintf("\033[1;36mnexus\033[0m:\033[1;34m%s\033[0m$ ", cwd);
+        /* Set cursor to blinking bar (DECSCUSR 5) */
+        kprintf("\033[5 q");
+        
         pos = 0;
+        int cursor_pos = 0;
+        int history_index = history_count;
+        char current_draft[SHELL_MAX_LINE_LEN];
+        
         memset(line, 0, sizeof(line));
+        memset(current_draft, 0, sizeof(current_draft));
 
         while (1) {
             input_event_t event;
@@ -234,18 +248,95 @@ void shell_run(void) {
                 if (event.type == INPUT_EVENT_KEY_PRESS) {
                     if (event.ascii == '\n') {
                         kprintf("\n");
+                        if (strlen(line) > 0) {
+                            strncpy(shell_history[history_count % SHELL_MAX_HISTORY], line, SHELL_MAX_LINE_LEN - 1);
+                            shell_history[history_count % SHELL_MAX_HISTORY][SHELL_MAX_LINE_LEN - 1] = '\0';
+                            history_count++;
+                        }
                         shell_execute(line);
                         break;
                     } else if (event.ascii == '\b') {
-                        if (pos > 0) {
+                        if (cursor_pos > 0) {
+                            /* Shift buffer left */
+                            memmove(&line[cursor_pos - 1], &line[cursor_pos], pos - cursor_pos);
+                            pos--;
+                            cursor_pos--;
+                            line[pos] = '\0';
+                            
+                            /* Redraw line: move back, clear to end, draw tail, move back */
+                            kprintf("\b\033[K%s", &line[cursor_pos]);
+                            /* Fast batch shift back */
+                            if (pos > cursor_pos) kprintf("\033[%dD", pos - cursor_pos);
+                        }
+                    } else if (event.ascii == (char)KEY_DELETE) {
+                        if (cursor_pos < pos) {
+                            memmove(&line[cursor_pos], &line[cursor_pos + 1], pos - cursor_pos - 1);
                             pos--;
                             line[pos] = '\0';
-                            kprintf("\b");
+                            kprintf("\033[K%s", &line[cursor_pos]);
+                            if (pos > cursor_pos) kprintf("\033[%dD", pos - cursor_pos);
+                        }
+                    } else if (event.ascii == (char)KEY_LEFT) {
+                        if (cursor_pos > 0) {
+                            cursor_pos--;
+                            kprintf("\033[D");
+                        }
+                    } else if (event.ascii == (char)KEY_RIGHT) {
+                        if (cursor_pos < pos) {
+                            cursor_pos++;
+                            kprintf("\033[C");
+                        }
+                    } else if (event.ascii == (char)KEY_UP) {
+                        if (history_count > 0 && history_index > 0 && history_index > history_count - SHELL_MAX_HISTORY) {
+                            /* Save draft if leaving the bottom */
+                            if (history_index == history_count) {
+                                strcpy(current_draft, line);
+                            }
+                            
+                            history_index--;
+                            
+                            /* Clear current visuals cleanly */
+                            if (cursor_pos > 0) kprintf("\033[%dD", cursor_pos);
+                            kprintf("\033[K");
+                            
+                            strcpy(line, shell_history[history_index % SHELL_MAX_HISTORY]);
+                            pos = strlen(line);
+                            cursor_pos = pos;
+                            kprintf("%s", line);
+                        }
+                    } else if (event.ascii == (char)KEY_DOWN) {
+                        if (history_index < history_count) {
+                            history_index++;
+                            
+                            /* Clear current visuals cleanly */
+                            if (cursor_pos > 0) kprintf("\033[%dD", cursor_pos);
+                            kprintf("\033[K");
+                            
+                            if (history_index == history_count) {
+                                strcpy(line, current_draft);
+                            } else {
+                                strcpy(line, shell_history[history_index % SHELL_MAX_HISTORY]);
+                            }
+                            
+                            pos = strlen(line);
+                            cursor_pos = pos;
+                            kprintf("%s", line);
                         }
                     } else if (event.ascii >= 32 && event.ascii <= 126) {
                         if (pos < SHELL_MAX_LINE_LEN - 1) {
-                            line[pos++] = event.ascii;
-                            kputchar(event.ascii);
+                            /* Shift buffer right if needed */
+                            if (cursor_pos < pos) {
+                                memmove(&line[cursor_pos + 1], &line[cursor_pos], pos - cursor_pos);
+                            }
+                            line[cursor_pos] = event.ascii;
+                            pos++;
+                            line[pos] = '\0';
+                            
+                            /* Draw current char + tail */
+                            kprintf("%s", &line[cursor_pos]);
+                            cursor_pos++;
+                            /* Fast batch shift back to correct insertion point */
+                            if (pos > cursor_pos) kprintf("\033[%dD", pos - cursor_pos);
                         }
                     }
                 }

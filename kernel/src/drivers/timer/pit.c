@@ -11,6 +11,7 @@
 #include "lib/printf.h"
 #include "lib/debug.h"
 #include "drivers/video/framebuffer.h"
+#include "display/terminal.h"
 
 /* ── State ──────────────────────────────────────────────────────────────── */
 
@@ -29,6 +30,9 @@ static void pit_irq_handler(registers_t *regs) {
         framebuffer_put_pixel(0, 0, toggle ? 0xFFFFFFFF : 0x00000000);
         toggle = !toggle;
     }
+
+    /* Update terminal cursor blink */
+    terminal_blink_tick(&main_terminal);
 
     pic_send_eoi(0);
 }

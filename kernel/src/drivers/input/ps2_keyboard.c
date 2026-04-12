@@ -221,8 +221,16 @@ static void keyboard_irq_handler(registers_t *regs) {
         /* CapsLock flips case on letters */
         if (caps && ch >= 'a' && ch <= 'z')      ch -= 32;
         else if (caps && ch >= 'A' && ch <= 'Z') ch += 32;
+    } else {
+        /* Extended scancodes */
+        switch (sc) {
+            case 0x6B: ch = KEY_LEFT;  break;
+            case 0x74: ch = KEY_RIGHT; break;
+            case 0x75: ch = KEY_UP;    break;
+            case 0x72: ch = KEY_DOWN;  break;
+            case 0x71: ch = KEY_DELETE;break;
+        }
     }
-    /* Extended keys (arrows, etc.) can be added later */
 
     /* ── Build and push input event ── */
     input_event_t event = {0};

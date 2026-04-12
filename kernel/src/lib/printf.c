@@ -27,8 +27,10 @@ void kputchar(char c) {
 
 /* Print a null-terminated string */
 void kputs(const char *s) {
+    display_manager_write(s, strlen(s));
     while (*s) {
-        kputchar(*s++);
+        klog_putc(*s);
+        serial_putc(*s++);
     }
 }
 
@@ -83,129 +85,63 @@ void kprintf_set_color(unsigned int fg, unsigned int bg) {
     (void)fg; (void)bg;
 }
 
-/* Kernel formatted print */
-int kprintf(const char *fmt, ...) {
-    va_list args;
-    va_start(args, fmt);
-    int count = 0;
+/* vsnprintf - minimal kernel implementation for batched writes */
+int vsnprintf(char *buf, size_t size, const char *fmt, va_list args) {
+    size_t pos = 0;
+    const char *digits = "0123456789abcdef";
 
-    while (*fmt) {
+    #define APPEND(c) if (pos < size - 1) buf[pos++] = (c)
+
+    while (*fmt && pos < size - 1) {
         if (*fmt != '%') {
-            kputchar(*fmt++);
-            count++;
+            APPEND(*fmt++);
             continue;
         }
-
-        fmt++; /* skip '%' */
-
-        /* Parse flags */
-        char pad = ' ';
-        int left_align = 0;
-        while (1) {
-            if (*fmt == '0') pad = '0';
-            else if (*fmt == '-') left_align = 1;
-            else break;
-            fmt++;
-        }
-
-        /* Parse field width */
-        int width = 0;
-        while (*fmt >= '0' && *fmt <= '9') {
-            width = width * 10 + (*fmt - '0');
-            fmt++;
-        }
-
-        /* Parse length modifier */
-        int length = 0; /* 0=default, 1=long, 2=long long */
-        if (*fmt == 'l') {
-            length = 1;
-            fmt++;
-            if (*fmt == 'l') {
-                length = 2;
-                fmt++;
-            }
-        }
-
-        /* Parse conversion specifier */
+        fmt++;
+        
+        /* Parse conversion */
         switch (*fmt) {
-            case 'd':
-            case 'i': {
-                int64_t val;
-                if (length == 2)      val = va_arg(args, int64_t);
-                else if (length == 1) val = va_arg(args, long);
-                else                  val = va_arg(args, int);
-                print_int64(val, width, pad);
-                break;
-            }
-            case 'u': {
-                uint64_t val;
-                if (length == 2)      val = va_arg(args, uint64_t);
-                else if (length == 1) val = va_arg(args, unsigned long);
-                else                  val = va_arg(args, unsigned int);
-                print_uint64(val, 10, 0, width, pad);
-                break;
-            }
-            case 'x': {
-                uint64_t val;
-                if (length == 2)      val = va_arg(args, uint64_t);
-                else if (length == 1) val = va_arg(args, unsigned long);
-                else                  val = va_arg(args, unsigned int);
-                print_uint64(val, 16, 0, width, pad);
-                break;
-            }
-            case 'X': {
-                uint64_t val;
-                if (length == 2)      val = va_arg(args, uint64_t);
-                else if (length == 1) val = va_arg(args, unsigned long);
-                else                  val = va_arg(args, unsigned int);
-                print_uint64(val, 16, 1, width, pad);
-                break;
-            }
-            case 'p': {
-                uint64_t val = (uint64_t)(uintptr_t)va_arg(args, void *);
-                kputs("0x");
-                print_uint64(val, 16, 0, 16, '0');
-                break;
-            }
             case 's': {
                 const char *s = va_arg(args, const char *);
-                if (s == (void *)0) s = "(null)";
-                int len = (int)strlen(s);
-                if (!left_align) {
-                    while (len < width--) kputchar(pad);
-                }
-                kputs(s);
-                if (left_align) {
-                    while (len < width--) kputchar(pad);
-                }
+                if (!s) s = "(null)";
+                while (*s) { APPEND(*s++); }
                 break;
             }
-            case 'c': {
-                char c = (char)va_arg(args, int);
-                kputchar(c);
+            case 'd': {
+                int64_t val = va_arg(args, int);
+                if (val < 0) { APPEND('-'); val = -val; }
+                char tbuf[20]; int tpos = 0;
+                if (val == 0) tbuf[tpos++] = '0';
+                else while (val > 0) { tbuf[tpos++] = (val % 10) + '0'; val /= 10; }
+                while (tpos > 0) APPEND(tbuf[--tpos]);
                 break;
             }
-            case '%':
-                kputchar('%');
-                break;
-            default:
-                /* Unknown specifier — print literally */
-                kputchar('%');
-                if (left_align) kputchar('-');
-                if (width > 0) {
-                    /* This is a bit complex for a default, but better than nothing */
-                    char wbuf[10];
-                    int wpos = 0;
-                    int tw = width;
-                    while (tw > 0) { wbuf[wpos++] = (tw % 10) + '0'; tw /= 10; }
-                    while (wpos > 0) kputchar(wbuf[--wpos]);
-                }
-                kputchar(*fmt);
-                break;
+            case 'c': APPEND((char)va_arg(args, int)); break;
+            case '%': APPEND('%'); break;
+            default: APPEND('%'); APPEND(*fmt); break;
         }
         fmt++;
     }
+    buf[pos] = '\0';
+    return (int)pos;
+}
 
+/* Kernel formatted print - now optimized with vsnprintf and batched writes */
+int kprintf(const char *fmt, ...) {
+    char buf[1024];
+    va_list args;
+    va_start(args, fmt);
+    int len = vsnprintf(buf, sizeof(buf), fmt, args);
     va_end(args);
-    return 0; /* Updated kprintf doesn't strictly track count for now */
+
+    /* Output to all enabled destinations as a single batch where possible */
+    display_manager_write(buf, (uint64_t)len);
+    
+    /* Still log to serial and klog */
+    for (int i = 0; i < len; i++) {
+        klog_putc(buf[i]);
+        serial_putc(buf[i]);
+    }
+
+    return len;
 }

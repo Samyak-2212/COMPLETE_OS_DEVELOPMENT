@@ -304,6 +304,9 @@ void kmain(void) {
     kprintf_set_color(0x00FFCC00, 0x001A1A2E);
     debug_log(DEBUG_LEVEL_INFO, "BOOT", "Launching Kernel Shell...");
     
+    /* Late-allocate terminal backbuffers now that heap is online */
+    terminal_allocate_backbuffer(&main_terminal);
+    
     /* Clear boot logs for a fresh shell entry */
     terminal_clear(&main_terminal);
     
