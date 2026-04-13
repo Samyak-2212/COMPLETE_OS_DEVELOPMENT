@@ -9,8 +9,11 @@
 # Target architecture (x86_64 only for NexusOS).
 ARCH := x86_64
 
+# Configuration (release by default)
+BUILD_CONFIG := release
+
 # Default QEMU flags.
-QEMUFLAGS := -m 2G -serial stdio
+QEMUFLAGS :=
 
 override IMAGE_NAME := nexusos-$(ARCH)
 
@@ -21,73 +24,60 @@ HOST_CPPFLAGS :=
 HOST_LDFLAGS :=
 HOST_LIBS :=
 
-# ── Default target ──────────────────────────────────────────────────────────
-.PHONY: all
+# ── Default targets ─────────────────────────────────────────────────────────
+.PHONY: all all-hdd
 all: $(IMAGE_NAME).iso
-
-.PHONY: all-hdd
 all-hdd: $(IMAGE_NAME).hdd
 
-# ── QEMU run targets ───────────────────────────────────────────────────────
-.PHONY: run
-run: edk2-ovmf $(IMAGE_NAME).iso
-	cp edk2-ovmf/ovmf-vars-$(ARCH).fd /tmp/ovmf-vars-run.fd
-	qemu-system-$(ARCH) \
-		-M q35 \
-		-vga std \
-		-drive if=pflash,unit=0,format=raw,file=edk2-ovmf/ovmf-code-$(ARCH).fd,readonly=on \
-		-drive if=pflash,unit=1,format=raw,file=/tmp/ovmf-vars-run.fd \
-		-cdrom $(IMAGE_NAME).iso \
-		$(QEMUFLAGS)
+# ── QEMU Configuration ─────────────────────────────────────────────────────
+QEMU := qemu-system-$(ARCH)
+QEMU_COMMON := -M q35 -m 2G -serial stdio -vga std $(QEMUFLAGS)
+QEMU_BIOS_FLAGS := -boot d -cdrom $(IMAGE_NAME).iso
+QEMU_UEFI_FLAGS := -drive if=pflash,unit=0,format=raw,file=edk2-ovmf/ovmf-code-$(ARCH).fd,readonly=on \
+                   -drive if=pflash,unit=1,format=raw,file=.build/ovmf/ovmf-vars.fd \
+                   -cdrom $(IMAGE_NAME).iso
 
-.PHONY: run-bios
-run-bios: $(IMAGE_NAME).iso
-	qemu-system-$(ARCH) \
-		-M q35 \
-		-cdrom $(IMAGE_NAME).iso \
-		-boot d \
-		$(QEMUFLAGS)
+# Helper to ensure local OVMF vars exist
+.build/ovmf/ovmf-vars.fd: edk2-ovmf
+	@mkdir -p .build/ovmf
+	cp edk2-ovmf/ovmf-vars-$(ARCH).fd .build/ovmf/ovmf-vars.fd
 
-.PHONY: run-uefi
-run-uefi: edk2-ovmf $(IMAGE_NAME).iso
-	cp edk2-ovmf/ovmf-vars-$(ARCH).fd /tmp/ovmf-vars-uefi.fd
-	qemu-system-$(ARCH) \
-		-M q35 \
-		-vga std \
-		-drive if=pflash,unit=0,format=raw,file=edk2-ovmf/ovmf-code-$(ARCH).fd,readonly=on \
-		-drive if=pflash,unit=1,format=raw,file=/tmp/ovmf-vars-uefi.fd \
-		-cdrom $(IMAGE_NAME).iso \
-		$(QEMUFLAGS)
+# ── Boot Targets ───────────────────────────────────────────────────────────
+.PHONY: bios uefi bios-ntfs uefi-ntfs bios-noscreen uefi-noscreen bios-ntfs-noscreen uefi-ntfs-noscreen
 
-.PHONY: run-hdd
-run-hdd: edk2-ovmf $(IMAGE_NAME).hdd
-	cp edk2-ovmf/ovmf-vars-$(ARCH).fd /tmp/ovmf-vars-hdd.fd
-	qemu-system-$(ARCH) \
-		-M q35 \
-		-vga std \
-		-drive if=pflash,unit=0,format=raw,file=edk2-ovmf/ovmf-code-$(ARCH).fd,readonly=on \
-		-drive if=pflash,unit=1,format=raw,file=/tmp/ovmf-vars-hdd.fd \
-		-hda $(IMAGE_NAME).hdd \
-		$(QEMUFLAGS)
+bios: $(IMAGE_NAME).iso
+	$(QEMU) $(QEMU_COMMON) $(QEMU_BIOS_FLAGS)
 
-.PHONY: run-uefi-hdd
-run-uefi-hdd: edk2-ovmf $(IMAGE_NAME).hdd
-	cp edk2-ovmf/ovmf-vars-$(ARCH).fd /tmp/ovmf-vars-uefi-hdd.fd
-	qemu-system-$(ARCH) \
-		-M q35 \
-		-vga std \
-		-drive if=pflash,unit=0,format=raw,file=edk2-ovmf/ovmf-code-$(ARCH).fd,readonly=on \
-		-drive if=pflash,unit=1,format=raw,file=/tmp/ovmf-vars-uefi-hdd.fd \
-		-hda $(IMAGE_NAME).hdd \
-		$(QEMUFLAGS)
+uefi: $(IMAGE_NAME).iso .build/ovmf/ovmf-vars.fd
+	$(QEMU) $(QEMU_COMMON) $(QEMU_UEFI_FLAGS)
 
-.PHONY: run-hdd-bios
-run-hdd-bios: $(IMAGE_NAME).hdd ext4.img
-	qemu-system-$(ARCH) \
-		-M pc \
-		-drive file=$(IMAGE_NAME).hdd,format=raw,index=0,media=disk \
-		-drive file=ext4.img,format=raw,index=1,media=disk \
-		$(QEMUFLAGS)
+bios-ntfs: $(IMAGE_NAME).iso
+	@if [ ! -f ntfs_test.img ]; then echo "WARNING: ntfs_test.img not found. Use make_ntfs_img.sh to create it."; exit 1; fi
+	$(QEMU) $(QEMU_COMMON) $(QEMU_BIOS_FLAGS) -hdb ntfs_test.img
+
+uefi-ntfs: $(IMAGE_NAME).iso .build/ovmf/ovmf-vars.fd
+	@if [ ! -f ntfs_test.img ]; then echo "WARNING: ntfs_test.img not found. Use make_ntfs_img.sh to create it."; exit 1; fi
+	$(QEMU) $(QEMU_COMMON) $(QEMU_UEFI_FLAGS) -hdb ntfs_test.img
+
+bios-noscreen: $(IMAGE_NAME).iso
+	$(QEMU) $(QEMU_COMMON) $(QEMU_BIOS_FLAGS) -display none
+
+uefi-noscreen: $(IMAGE_NAME).iso .build/ovmf/ovmf-vars.fd
+	$(QEMU) $(QEMU_COMMON) $(QEMU_UEFI_FLAGS) -display none
+
+bios-ntfs-noscreen: $(IMAGE_NAME).iso
+	@if [ ! -f ntfs_test.img ]; then echo "WARNING: ntfs_test.img not found. Use make_ntfs_img.sh to create it."; exit 1; fi
+	$(QEMU) $(QEMU_COMMON) $(QEMU_BIOS_FLAGS) -hdb ntfs_test.img -display none
+
+uefi-ntfs-noscreen: $(IMAGE_NAME).iso .build/ovmf/ovmf-vars.fd
+	@if [ ! -f ntfs_test.img ]; then echo "WARNING: ntfs_test.img not found. Use make_ntfs_img.sh to create it."; exit 1; fi
+	$(QEMU) $(QEMU_COMMON) $(QEMU_UEFI_FLAGS) -hdb ntfs_test.img -display none
+
+# Legacy run targets (for backward compatibility)
+.PHONY: run run-bios run-uefi
+run: uefi
+run-bios: bios
+run-uefi: uefi
 
 # ── External dependencies ──────────────────────────────────────────────────
 edk2-ovmf:
@@ -109,7 +99,7 @@ kernel/.deps-obtained:
 
 .PHONY: kernel
 kernel: kernel/.deps-obtained
-	$(MAKE) -C kernel
+	$(MAKE) -C kernel BUILD_CONFIG=$(BUILD_CONFIG)
 
 # ── ISO generation ──────────────────────────────────────────────────────────
 $(IMAGE_NAME).iso: limine/limine kernel

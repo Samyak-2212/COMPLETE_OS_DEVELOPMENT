@@ -15,6 +15,7 @@
 #include "display/display_manager.h"
 #include <stdarg.h>
 #include "lib/klog.h"
+#include "lib/serial.h"
 
 /* ── Internal helpers ───────────────────────────────────────────────────── */
 
@@ -61,6 +62,7 @@ static void print_uint64(uint64_t value, int base, int uppercase,
     }
 }
 
+#ifdef DEBUGGER_ENABLED
 /* Print a signed 64-bit integer */
 static void print_int64(int64_t value, int width, char pad) {
     if (value < 0) {
@@ -71,6 +73,7 @@ static void print_int64(int64_t value, int width, char pad) {
         print_uint64((uint64_t)value, 10, 0, width, pad);
     }
 }
+#endif
 
 /* ── Public API ─────────────────────────────────────────────────────────── */
 
@@ -88,7 +91,9 @@ void kprintf_set_color(unsigned int fg, unsigned int bg) {
 /* vsnprintf - minimal kernel implementation for batched writes */
 int vsnprintf(char *buf, size_t size, const char *fmt, va_list args) {
     size_t pos = 0;
+#ifdef DEBUG_UNUSED_FOR_NOW
     const char *digits = "0123456789abcdef";
+#endif
 
     #define APPEND(c) if (pos < size - 1) buf[pos++] = (c)
 

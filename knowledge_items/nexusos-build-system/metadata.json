@@ -1,0 +1,17 @@
+{
+  "title": "NexusOS Build System",
+  "summary": "Authoritative guide for the NexusOS modular build system. Covers boot targets (BIOS, UEFI, NTFS, Headless), BUILD_CONFIG toggles, and zero-clean switching protocols. Instructions for adding new boot targets are included.",
+  "created_at": "2026-04-14T04:44:00Z",
+  "updated_at": "2026-04-14T04:44:00Z",
+  "tags": ["nexusos", "build", "makefile", "qemu", "boot", "uefi", "bios", "ntfs"],
+  "references": [
+    {
+      "type": "file",
+      "path": "GNUmakefile"
+    },
+    {
+      "type": "file",
+      "path": "kernel/GNUmakefile"
+    }
+  ]
+}

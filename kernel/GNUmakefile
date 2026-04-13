@@ -12,6 +12,9 @@ override OUTPUT := kernel
 # Target architecture.
 ARCH := x86_64
 
+# Configuration (release by default)
+BUILD_CONFIG ?= release
+
 # ── Toolchain ───────────────────────────────────────────────────────────────
 TOOLCHAIN :=
 TOOLCHAIN_PREFIX :=
@@ -65,6 +68,11 @@ override CFLAGS += \
     -fdata-sections \
     -fno-omit-frame-pointer
 
+# Add debugger macro if in debug mode
+ifeq ($(BUILD_CONFIG),debug)
+    override CFLAGS += -DDEBUGGER_ENABLED=1
+endif
+
 # ── Internal preprocessor flags ────────────────────────────────────────────
 override CPPFLAGS := \
     -I src \
@@ -112,13 +120,18 @@ override LDFLAGS += \
 override SRCFILES := $(shell find -L src cc-runtime/src -type f -not -path 'src/arch/*' 2>/dev/null | LC_ALL=C sort)
 override SRCFILES += $(shell find -L src/arch/$(ARCH) -type f 2>/dev/null | LC_ALL=C sort)
 
+# Filter out debugger files if not in debug mode
+ifneq ($(BUILD_CONFIG),debug)
+    override SRCFILES := $(filter-out %/debug.c %/serial.c %/debug.h %/serial.h,$(SRCFILES))
+endif
+
 # ── Object file lists ──────────────────────────────────────────────────────
 override CFILES := $(filter %.c,$(SRCFILES))
 override ASFILES := $(filter %.S,$(SRCFILES))
 override NASMFILES := $(filter %.asm,$(SRCFILES))
-override OBJ := $(addprefix obj-$(ARCH)/,$(CFILES:.c=.c.o) $(ASFILES:.S=.S.o))
-override OBJ += $(addprefix obj-$(ARCH)/,$(NASMFILES:.asm=.asm.o))
-override HEADER_DEPS := $(addprefix obj-$(ARCH)/,$(CFILES:.c=.c.d) $(ASFILES:.S=.S.d))
+override OBJ := $(addprefix obj-$(ARCH)-$(BUILD_CONFIG)/,$(CFILES:.c=.c.o) $(ASFILES:.S=.S.o))
+override OBJ += $(addprefix obj-$(ARCH)-$(BUILD_CONFIG)/,$(NASMFILES:.asm=.asm.o))
+override HEADER_DEPS := $(addprefix obj-$(ARCH)-$(BUILD_CONFIG)/,$(CFILES:.c=.c.d) $(ASFILES:.S=.S.d))
 
 # ── Default target ──────────────────────────────────────────────────────────
 .PHONY: all
@@ -133,24 +146,24 @@ bin-$(ARCH)/$(OUTPUT): GNUmakefile linker-scripts/$(ARCH).lds $(OBJ)
 	$(LD) $(LDFLAGS) $(OBJ) -o $@
 
 # ── Compile C ───────────────────────────────────────────────────────────────
-obj-$(ARCH)/%.c.o: %.c GNUmakefile
+obj-$(ARCH)-$(BUILD_CONFIG)/%.c.o: %.c GNUmakefile
 	mkdir -p "$(dir $@)"
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
 
 # ── Compile GNU assembly ───────────────────────────────────────────────────
-obj-$(ARCH)/%.S.o: %.S GNUmakefile
+obj-$(ARCH)-$(BUILD_CONFIG)/%.S.o: %.S GNUmakefile
 	mkdir -p "$(dir $@)"
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
 
 # ── Assemble NASM ───────────────────────────────────────────────────────────
-obj-$(ARCH)/%.asm.o: %.asm GNUmakefile
+obj-$(ARCH)-$(BUILD_CONFIG)/%.asm.o: %.asm GNUmakefile
 	mkdir -p "$(dir $@)"
 	nasm $(NASMFLAGS) $< -o $@
 
 # ── Clean ───────────────────────────────────────────────────────────────────
 .PHONY: clean
 clean:
-	rm -rf bin-$(ARCH) obj-$(ARCH)
+	rm -rf bin-$(ARCH) obj-$(ARCH)-*
 
 .PHONY: distclean
 distclean:

@@ -16,6 +16,7 @@ typedef enum {
 #define DEBUG_MODE_JSON    0
 #define DEBUG_MODE_HR      1
 
+#ifdef DEBUGGER_ENABLED
 /* Set global debug mode (JSON vs Human Readable) */
 void debug_set_mode(int mode);
 
@@ -30,5 +31,12 @@ void debug_dump_mem(const void *addr, size_t len);
 
 /* Stack trace from current location */
 void debug_backtrace(void);
+#else
+#define debug_set_mode(mode) ((void)0)
+#define debug_init()         ((void)0)
+#define debug_log(...)       ((void)0)
+#define debug_dump_mem(a, l) ((void)a, (void)l)
+#define debug_backtrace()    ((void)0)
+#endif
 
 #endif /* DEBUG_H */
