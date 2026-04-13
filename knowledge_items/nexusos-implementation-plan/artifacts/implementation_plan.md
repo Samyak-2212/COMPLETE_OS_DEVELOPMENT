@@ -573,7 +573,7 @@ override NASMFLAGS := -f elf64 -g -F dwarf -Wall
 
 ---
 
-### Phase 3: PCI, Storage, Filesystem
+### Phase 3: PCI, Storage, Filesystem [COMPLETE]
 
 > **Goal**: PCI devices enumerated. ATA/AHCI disk read working. ramfs as root. FAT32, NTFS, ext2 supported. Kernel shell with Linux-like commands.
 
@@ -592,7 +592,7 @@ override NASMFLAGS := -f elf64 -g -F dwarf -Wall
 | 3.11 Display manager | `kernel/src/display/display_manager.h`, `kernel/src/display/display_manager.c` | 3.10 | Expose `/dev/fb0` for userspace memory mapping. Handles VT switching (pausing terminal when userspace GUI takes over). |
 | 3.12 Kernel shell | `kernel/src/display/terminal_shell.h`, `kernel/src/display/terminal_shell.c` | 3.10, 3.5 | Built-in kernel shell (runs before scheduler). Prompt: `nexus:/$ `. Implements all commands from §1.6 table. Path resolution: absolute (`/mnt/hda1/file`) and relative. Working directory tracked per shell instance. |
 | 3.13 devfs | `kernel/src/fs/devfs.h`, `kernel/src/fs/devfs.c` | 3.5 | Virtual filesystem at `/dev`. Device nodes: `hda`, `hda1`, `sda`, `tty0`, `null`, `zero`. |
-| **3.V** | **Verification** | 3.12 | Boot → kernel shell appears. `ls /` shows ramfs dirs. Create files with `echo hello > /tmp/test.txt`, `cat /tmp/test.txt` prints "hello". Mount a FAT32 disk image → `ls /mnt/hda1/` shows files. `cd`, `pwd`, `mkdir`, `rm` all functional. |
+| **3.V** | **Verification** | 3.12 | Boot → kernel shell appears. `ls /` shows ramfs dirs. Create files with `echo hello > /tmp/test.txt`, `cat /tmp/test.txt` prints "hello". Mount a FAT32 disk image → `ls /mnt/hda1/` shows files. `cd`, `pwd`, `mkdir`, `rm` all functional. [COMPLETE] |
 
 ---
 

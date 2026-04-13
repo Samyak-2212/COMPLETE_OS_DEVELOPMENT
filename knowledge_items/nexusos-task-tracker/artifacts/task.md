@@ -31,21 +31,21 @@
 - [x] 2.13 Input manager (256-entry ring buffer)
 - [x] 2.V Verification — builds 0 errors, ISO generated, keyboard echo works
 
-## Phase 3: PCI, Storage, Filesystem, Terminal, Shell ← NEXT
+## Phase 3: PCI, Storage, Filesystem, Terminal, Shell ✅
 - [x] 3.1 Driver interface + PnP manager
 - [x] 3.2 PCI enumeration
-- [/] 3.3 ATA PIO driver
-- [/] 3.4 AHCI driver
+- [x] 3.3 ATA PIO driver
+- [x] 3.4 AHCI driver
 - [x] 3.5 VFS + ramfs (root filesystem)
 - [x] 3.6 Partition detection (MBR/GPT)
-- [/] 3.7 FAT32 driver
-- [ ] 3.8 NTFS driver (read-only)
-- [/] 3.9 ext2/ext4 driver (read-only)
+- [x] 3.7 FAT32 driver
+- [x] 3.8 NTFS driver (read-only)
+- [x] 3.9 ext2/ext4 driver (read-only)
 - [x] 3.10 Terminal console (VT100)
 - [x] 3.11 Display manager (terminal↔GUI switching)
-- [/] 3.12 Kernel shell (21 Linux-like commands)
-- [ ] 3.13 devfs (/dev)
-- [ ] 3.V Verification
+- [x] 3.12 Kernel shell (21 Linux-like commands, some as STUBS)
+- [x] 3.13 devfs (/dev)
+- [x] 3.V Verification — kernel shell functional, storage partitions detected
 
 ## Phase 4: Multitasking, USB, Userspace
 - [ ] 4.1 Process/thread model

@@ -60,14 +60,19 @@ These are the **stable interfaces** that agents must code against. Breaking thes
 4. Add partition type detection in `partition.c` if on-disk
 
 ### 2.3 Adding a Shell Command
-
-1. In `kernel/src/display/terminal_shell.c`:
+1. Create `kernel/src/shell/cmds/<category>/cmd_<name>.c`
+2. Implement your handler and register via the `REGISTER_SHELL_COMMAND` macro:
    ```c
-   // In the command table array:
-   {"mycommand", "Description", cmd_mycommand},
+   #include "shell/shell_command.h"
+
+   static int cmd_mycmd(int argc, char **argv) {
+       kprintf("Hello!\n");
+       return 0;
+   }
+
+   REGISTER_SHELL_COMMAND(mycmd, "[args]", "[opts]", "Description", "Full help", "system", cmd_mycmd);
    ```
-2. Or for userspace shell: add to `userspace/shell.c` command dispatch
-3. Shell commands are registered in a static table — append to it
+3. The linker automatically collects and registers commands in the `.shell_commands` section.
 
 ### 2.4 Creating a Desktop Environment / GUI (Phase 6)
 
@@ -181,6 +186,7 @@ To ensure maximum efficiency and preserve context limits, ALL agents (including 
 4. **No Pleasantries**: Do not be overly friendly. Omit greetings, conversational padding, apologies, and subjective commentary.
 5. **Perfection & Honesty**: You are expected to be perfect in your job. Do not make unverified assumptions or mistakes. Be completely honest and direct about failures or impossibilities.
 6. **Concise Thinking**: Agent internal thoughts/planning must be brief, strict, and devoid of casual or conversational filler. Only critical reasoning items permitted.
+7. **Atomic DLC Protocol**: Any agent making a change MUST ensure documentation stays in sync by utilizing the `.agents/skills/nexusos-sync` skill. Code commits and KI updates are atomic.
 
 ---
 
@@ -246,10 +252,21 @@ For changes that affect multiple subsystems (e.g., switching from PIC to APIC, a
 
 ## 8. Version Tracking
 
+---
+
+## 9. Documentation Synchronization (DLC Protocol)
+
+Every agent session MUST begin and end with a documentation audit to prevent desync.
+
+1. **Audit Startup**: Run `.agents/skills/nexusos-sync/scripts/audit.py` to verify current KI state against filesystem.
+2. **Plan Sync**: Implementation plans MUST contain a "Knowledge Updates" section.
+3. **Milestone Sync**: Update `task.md` and `progress_report.md` as milestones are reached.
+4. **Final Sync**: Verify 0 desyncs via `audit.py` before final submission/turn.
+
 | Field | Current Value |
 |---|---|
 | **Kernel Version** | 0.1.0 "Genesis" |
-| **Phase Completed** | Phase 2 (Core Kernel) |
-| **Source Files** | 35 |
+| **Phase Completed** | Phase 3 (Hardware/FS/Shell) |
+| **Source Files** | 101 |
 | **Build Status** | 0 errors, 0 C warnings |
-| **Next Phase** | Phase 3 (PCI, Storage, FS, Terminal, Shell) |
+| **Next Phase** | Phase 4 (Multitasking, USB, Userspace) |

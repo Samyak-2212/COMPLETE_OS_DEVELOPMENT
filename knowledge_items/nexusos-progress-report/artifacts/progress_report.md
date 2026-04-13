@@ -36,15 +36,28 @@ All tasks complete. GDT, IDT, PIC, PMM, VMM, heap, timer, PS/2 input all functio
 | `kernel/src/drivers/input/ps2_mouse.c` | 3/4-byte packet decode (IRQ12) |
 | `kernel/src/drivers/input/input_manager.c` | 256-entry ring buffer |
 
+## ✅ Phase 3: Hardware, Storage, Filesystem, Terminal, Shell
+All tasks complete. PCI enumerated, ATA/AHCI drivers functional, VFS with multiple partitions (FAT32/NTFS/ext4) and devfs supported. Modular shell with 21+ commands.
+
+| Component | Status | Details |
+|---|---|---|
+| **PCI Service** | ✅ | Full bus enumeration, PnP driver matching. |
+| **Storage** | ✅ | ATA PIO and AHCI (SATA) DMA-capable drivers. |
+| **VFS** | ✅ | Hybrid mount table, ramfs root, path resolution. |
+| **Filesystems** | ✅ | FAT32 (R/W), NTFS (R), ext4 (R). |
+| **Terminal** | ✅ | VT100 emulation, ANSI colors, line editing. |
+| **Shell** | ✅ | Modular command registration (Basic commands R/W, complex as STUBS). |
+| **devfs** | ✅ | Unified device nodes in `/dev`. |
+
 ## Build Status
-- **Compiler**: GCC (cc) with full freestanding x86_64 flags
+- **Compiler**: GCC (cc) with full freestanding x86_64 flags.
 - **Errors**: 0
-- **Warnings**: 1 (NASM relocation info, harmless)
-- **ISO**: `nexusos-x86_64.iso` generated successfully
-- **Files created**: 35 source files total
+- **Warnings**: 1 (NASM relocation info, harmless).
+- **ISO**: `nexusos-x86_64.iso` generated successfully.
+- **Files created**: 101 source files total.
+- **Next Phase Ready**: Phase 4 (Multitasking).
 
 ## ⬜ Remaining Phases
-- **Phase 3**: PCI, Storage, Filesystem, Terminal, Shell (13 tasks)
-- **Phase 4**: Multitasking, USB, Userspace (9 tasks)
+- **Phase 4**: Multitasking, USB, Userspace (9 tasks) [NEXT]
 - **Phase 5**: ACPI, APIC, Hardware polish (3 tasks)
 - **Phase 6**: GUI (reserved for future / another agent)

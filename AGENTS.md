@@ -5,6 +5,7 @@ They are the authoritative source of truth for this project.
 
 ## Required Reading (in order)
 
+0. **Mandatory Skill**: [.agents/skills/nexusos-sync/SKILL.md](file:///c:/Users/naska/OneDrive/Documents/GitHub/COMPLETE_OS_DEVELOPMENT/.agents/skills/nexusos-sync/SKILL.md) — Documentation synchronization workflow (Atomic DLC Protocol)
 1. `knowledge_items/nexusos-agent-protocol/artifacts/AGENT_PROTOCOL.md` — roles, boundaries, coding standards, behavior rules
 2. `knowledge_items/nexusos-kernel-api/artifacts/KERNEL_API.md` — stable kernel interfaces to code against
 3. `knowledge_items/nexusos-progress-report/artifacts/progress_report.md` — what is built and what is pending

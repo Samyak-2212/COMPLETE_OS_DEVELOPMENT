@@ -177,7 +177,7 @@ void spinlock_release(spinlock_t *lock);  // clear + sti
 
 ---
 
-## 9. Driver Interface (`kernel/src/drivers/driver.h`) [PLANNED — Phase 3]
+## 9. Driver Interface (`kernel/src/drivers/driver.h`)
 ```c
 typedef struct driver {
     const char *name;
@@ -194,7 +194,7 @@ void driver_probe_all(void);
 
 ---
 
-## 10. VFS Interface (`kernel/src/fs/vfs.h`) [PLANNED — Phase 3]
+## 10. VFS Interface (`kernel/src/fs/vfs.h`)
 ```c
 typedef struct vfs_node vfs_node_t;
 
