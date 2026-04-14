@@ -39,7 +39,7 @@ void pmm_init(void) {
     struct limine_hhdm_response *hhdm = limine_get_hhdm();
 
     if (!memmap || !hhdm) {
-        kprintf_set_color(0x00FF4444, 0x001A1A2E);
+        kprintf_set_color(0x00FF4444, FB_DEFAULT_BG);
         kprintf("[FAIL] PMM: No memory map or HHDM response\n");
         return;
     }
@@ -77,7 +77,7 @@ void pmm_init(void) {
     }
 
     if (!bitmap) {
-        kprintf_set_color(0x00FF4444, 0x001A1A2E);
+        kprintf_set_color(0x00FF4444, FB_DEFAULT_BG);
         kprintf("[FAIL] PMM: No region large enough for bitmap\n");
         return;
     }
@@ -101,9 +101,9 @@ void pmm_init(void) {
         used_pages++;
     }
 
-    kprintf_set_color(0x0088FF88, 0x001A1A2E);
+    kprintf_set_color(0x0088FF88, FB_DEFAULT_BG);
     kprintf("[OK] ");
-    kprintf_set_color(0x00CCCCCC, 0x001A1A2E);
+    kprintf_set_color(0x00CCCCCC, FB_DEFAULT_BG);
     kprintf("PMM: %llu MiB total, %llu MiB free (%llu/%llu pages)\n",
             (unsigned long long)(total_pages * PMM_PAGE_SIZE / (1024 * 1024)),
             (unsigned long long)((total_pages - used_pages) * PMM_PAGE_SIZE / (1024 * 1024)),

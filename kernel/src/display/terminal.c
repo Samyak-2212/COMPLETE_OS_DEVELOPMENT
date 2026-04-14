@@ -31,6 +31,7 @@ void terminal_init(terminal_t *term) {
     term->cursor_y = 0;
     term->fg_color = TERM_DEFAULT_FG;
     term->bg_color = TERM_DEFAULT_BG;
+    term->bold = false;
     term->state = VT_STATE_NORMAL;
     term->param_count = 0;
     term->private_mode = 0;
@@ -168,9 +169,18 @@ static void terminal_handle_sgr(terminal_t *term) {
             /* Reset */
             term->fg_color = TERM_DEFAULT_FG;
             term->bg_color = TERM_DEFAULT_BG;
+            term->bold = false;
+        } else if (p == 1) {
+            /* Bold/Bright */
+            term->bold = true;
+        } else if (p == 22) {
+            /* Reset Bold */
+            term->bold = false;
         } else if (p >= 30 && p <= 37) {
             /* Foreground color (0-7) */
-            term->fg_color = terminal_palette[p - 30];
+            uint32_t color_idx = p - 30;
+            if (term->bold) color_idx += 8;
+            term->fg_color = terminal_palette[color_idx];
         } else if (p >= 40 && p <= 47) {
             /* Background color (0-7) */
             term->bg_color = terminal_palette[p - 40];
@@ -237,18 +247,13 @@ void terminal_write(terminal_t *term, const char *data, uint64_t size) {
                 } else {
                     /* Final character of a CSI sequence */
                     if (c == 'm') {
-                        if (term->state != VT_STATE_PARAM && term->param_count == 0) {
-                             /* Special case for \033[m */
-                             term->param_count = 0;
-                        } else {
-                             term->param_count++;
-                        }
                         terminal_handle_sgr(term);
                     } else if (c == 'H' || c == 'f') {
                         /* Cursor position */
                         uint32_t y = term->params[0];
                         uint32_t x = term->params[1];
-                        if (y > 0) y--; if (x > 0) x--;
+                        if (y > 0) { y--; }
+                        if (x > 0) { x--; }
                         if (y >= term->height) y = term->height - 1;
                         if (x >= term->width) x = term->width - 1;
                         term->cursor_x = x;

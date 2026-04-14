@@ -172,9 +172,9 @@ int vfs_mount(const char *path, vfs_node_t *local_root) {
     node->ptr = local_root;
     node->flags |= FS_MOUNTPOINT;
     
-    kprintf_set_color(0x0088FF88, 0x001A1A2E);
+    kprintf_set_color(0x0088FF88, FB_DEFAULT_BG);
     kprintf("[VFS] ");
-    kprintf_set_color(0x00CCCCCC, 0x001A1A2E);
+    kprintf_set_color(0x00CCCCCC, FB_DEFAULT_BG);
     kprintf("Mounted filesystem at %s\n", path);
     
     return 0;

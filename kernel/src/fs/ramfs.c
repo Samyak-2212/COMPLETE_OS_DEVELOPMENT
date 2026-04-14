@@ -165,9 +165,9 @@ vfs_node_t *ramfs_init(void) {
     memset(priv, 0, sizeof(ramfs_internal_t));
     root->impl = priv;
     
-    kprintf_set_color(0x0088FF88, 0x001A1A2E);
+    kprintf_set_color(0x0088FF88, FB_DEFAULT_BG);
     kprintf("[VFS] ");
-    kprintf_set_color(0x00CCCCCC, 0x001A1A2E);
+    kprintf_set_color(0x00CCCCCC, FB_DEFAULT_BG);
     kprintf("RAMFS initialized (root `/`)\n");
     
     /* Create root hierarchy */

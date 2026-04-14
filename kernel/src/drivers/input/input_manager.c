@@ -64,9 +64,9 @@ void input_manager_init(void) {
     queue_tail = 0;
     memset(event_queue, 0, sizeof(event_queue));
 
-    kprintf_set_color(0x0088FF88, 0x001A1A2E);
+    kprintf_set_color(0x0088FF88, FB_DEFAULT_BG);
     kprintf("[OK] ");
-    kprintf_set_color(0x00CCCCCC, 0x001A1A2E);
+    kprintf_set_color(0x00CCCCCC, FB_DEFAULT_BG);
     kprintf("Input manager: %u-event ring buffer\n",
             (unsigned int)INPUT_QUEUE_SIZE);
 }

@@ -21,7 +21,7 @@ void driver_register(driver_t *drv) {
 
     if (num_drivers >= MAX_DRIVERS) {
         spinlock_release(&driver_lock);
-        kprintf_set_color(0x00FF4444, 0x001A1A2E);
+        kprintf_set_color(0x00FF4444, FB_DEFAULT_BG);
         kprintf("[FAIL] Driver manager: Maximum drivers reached, cannot register '%s'\n", drv->name);
         return;
     }

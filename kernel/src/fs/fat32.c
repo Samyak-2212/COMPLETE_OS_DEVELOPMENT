@@ -229,9 +229,9 @@ vfs_node_t *fat32_mount(disk_partition_t *part) {
     label[11] = 0;
     trim_spaces(label, 11);
 
-    kprintf_set_color(0x0088FF88, 0x001A1A2E);
+    kprintf_set_color(0x0088FF88, FB_DEFAULT_BG);
     kprintf("[FAT32] ");
-    kprintf_set_color(0x00CCCCCC, 0x001A1A2E);
+    kprintf_set_color(0x00CCCCCC, FB_DEFAULT_BG);
     kprintf("Mounted VOLUME '%s' (Cluster Size: %u bytes)\n", label, fs->bytes_per_cluster);
 
     fat32_ops.read = fat32_read;

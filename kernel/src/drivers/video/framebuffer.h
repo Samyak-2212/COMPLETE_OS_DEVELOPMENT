@@ -10,6 +10,10 @@
 #include <stdint.h>
 #include <stddef.h>
 
+/* Global UI Theme Colors */
+#define FB_DEFAULT_BG   0x001B1020
+#define FB_DEFAULT_FG   0x00AAAAAA
+
 /* Framebuffer information structure */
 typedef struct {
     volatile uint32_t *address;    /* Pointer to pixel data */

@@ -71,7 +71,7 @@ static uint64_t *vmm_get_next_level(uint64_t *table, uint64_t index, int create)
 void vmm_init(void) {
     struct limine_hhdm_response *hhdm = limine_get_hhdm();
     if (!hhdm) {
-        kprintf_set_color(0x00FF4444, 0x001A1A2E);
+        kprintf_set_color(0x00FF4444, FB_DEFAULT_BG);
         kprintf("[FAIL] VMM: No HHDM response\n");
         return;
     }
@@ -82,9 +82,9 @@ void vmm_init(void) {
     uint64_t cr3_val = read_cr3();
     pml4 = (uint64_t *)phys_to_virt(cr3_val & 0x000FFFFFFFFFF000ULL);
 
-    kprintf_set_color(0x0088FF88, 0x001A1A2E);
+    kprintf_set_color(0x0088FF88, FB_DEFAULT_BG);
     kprintf("[OK] ");
-    kprintf_set_color(0x00CCCCCC, 0x001A1A2E);
+    kprintf_set_color(0x00CCCCCC, FB_DEFAULT_BG);
     kprintf("VMM: Using Limine page tables, PML4 at phys 0x%016llx\n",
             (unsigned long long)(cr3_val & 0x000FFFFFFFFFF000ULL));
 }

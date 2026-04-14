@@ -30,7 +30,7 @@ static int ata_wait_busy(uint32_t io_base) {
     uint64_t start = pit_get_ticks();
     while((inb(io_base + ATA_REG_STATUS) & ATA_SR_BSY)) {
         if (pit_get_ticks() - start > 5000) {
-            kprintf_set_color(0x00FF4444, 0x001A1A2E);
+            kprintf_set_color(0x00FF4444, FB_DEFAULT_BG);
             kprintf("[ATA] Timeout waiting for BSY to clear\n");
             return 0;
         }
@@ -45,12 +45,12 @@ static int ata_wait_drq(uint32_t io_base) {
         uint8_t status = inb(io_base + ATA_REG_STATUS);
         if (status & ATA_SR_ERR) {
             uint8_t err = inb(io_base + ATA_REG_ERROR);
-            kprintf_set_color(0x00FF4444, 0x001A1A2E);
+            kprintf_set_color(0x00FF4444, FB_DEFAULT_BG);
             kprintf("[ATA] Error bit set in status (0x%02x), Error Register: 0x%02x\n", status, err);
             return 0;
         }
         if (pit_get_ticks() - start > 5000) {
-            kprintf_set_color(0x00FF4444, 0x001A1A2E);
+            kprintf_set_color(0x00FF4444, FB_DEFAULT_BG);
             kprintf("[ATA] Timeout waiting for DRQ\n");
             return 0;
         }
@@ -209,9 +209,9 @@ static int ata_init(void *device_info) {
         strcpy(drive->drive_name, names[i]);
         
         if (ata_identify(drive)) {
-            kprintf_set_color(0x0088FF88, 0x001A1A2E);
+            kprintf_set_color(0x0088FF88, FB_DEFAULT_BG);
             kprintf("[ATA] ");
-            kprintf_set_color(0x00CCCCCC, 0x001A1A2E);
+            kprintf_set_color(0x00CCCCCC, FB_DEFAULT_BG);
             kprintf("%s (%s): '%s' | %lu sectors\n", 
                 drive->drive_name, 
                 drive->is_master ? "Master" : "Slave",

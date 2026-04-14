@@ -198,9 +198,9 @@ void idt_init(void) {
     idtr.base  = (uint64_t)&idt;
     __asm__ volatile ("lidt %0" : : "m"(idtr));
 
-    kprintf_set_color(0x0088FF88, 0x001A1A2E);
+    kprintf_set_color(0x0088FF88, FB_DEFAULT_BG);
     kprintf("[OK] ");
-    kprintf_set_color(0x00CCCCCC, 0x001A1A2E);
+    kprintf_set_color(0x00CCCCCC, FB_DEFAULT_BG);
     kprintf("IDT loaded: 256 entries (%u bytes)\n",
             (unsigned int)sizeof(idt));
 }

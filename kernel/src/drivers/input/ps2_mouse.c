@@ -163,9 +163,9 @@ void ps2_mouse_init(void) {
     /* Unmask IRQ12 */
     pic_clear_mask(12);
 
-    kprintf_set_color(0x0088FF88, 0x001A1A2E);
+    kprintf_set_color(0x0088FF88, FB_DEFAULT_BG);
     kprintf("[OK] ");
-    kprintf_set_color(0x00CCCCCC, 0x001A1A2E);
+    kprintf_set_color(0x00CCCCCC, FB_DEFAULT_BG);
     kprintf("PS/2 mouse initialized (IRQ12, scroll=%s)\n",
             has_scroll_wheel ? "yes" : "no");
 }

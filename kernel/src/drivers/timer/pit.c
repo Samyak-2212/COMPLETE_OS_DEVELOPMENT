@@ -57,9 +57,9 @@ void pit_init(void) {
     /* Unmask IRQ0 */
     pic_clear_mask(0);
 
-    kprintf_set_color(0x0088FF88, 0x001A1A2E);
+    kprintf_set_color(0x0088FF88, FB_DEFAULT_BG);
     kprintf("[OK] ");
-    kprintf_set_color(0x00CCCCCC, 0x001A1A2E);
+    kprintf_set_color(0x00CCCCCC, FB_DEFAULT_BG);
     kprintf("PIT initialized: %u Hz (divisor=%u)\n",
             (unsigned int)PIT_TARGET_FREQ, (unsigned int)divisor);
 }

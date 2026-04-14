@@ -92,9 +92,9 @@ void gdt_init(void) {
 
     gdt_flush((uint64_t)&gdtr);
 
-    kprintf_set_color(0x0088FF88, 0x001A1A2E);
+    kprintf_set_color(0x0088FF88, FB_DEFAULT_BG);
     kprintf("[OK] ");
-    kprintf_set_color(0x00CCCCCC, 0x001A1A2E);
+    kprintf_set_color(0x00CCCCCC, FB_DEFAULT_BG);
     kprintf("GDT loaded: %u bytes, TSS at 0x%016llx\n",
             (unsigned int)sizeof(gdt_table),
             (unsigned long long)(uint64_t)&tss);

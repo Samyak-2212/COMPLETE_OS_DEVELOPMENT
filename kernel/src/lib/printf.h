@@ -9,6 +9,7 @@
 
 #include <stdarg.h>
 #include <stddef.h>
+#include "drivers/video/framebuffer.h"
 
 /* Initialize the kprintf console (must be called after framebuffer_init). */
 void kprintf_init(void);

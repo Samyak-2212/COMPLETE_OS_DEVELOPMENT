@@ -80,7 +80,7 @@ int ps2_controller_init(void) {
     ps2_send_command(0xAA);
     uint8_t test = ps2_read_data();
     if (test != 0x55) {
-        kprintf_set_color(0x00FF4444, 0x001A1A2E);
+        kprintf_set_color(0x00FF4444, FB_DEFAULT_BG);
         kprintf("[FAIL] PS/2 controller self-test failed (0x%02x)\n",
                 (unsigned int)test);
         return 0;
@@ -135,9 +135,9 @@ int ps2_controller_init(void) {
     ps2_send_command(0x60);
     ps2_send_data(config);
 
-    kprintf_set_color(0x0088FF88, 0x001A1A2E);
+    kprintf_set_color(0x0088FF88, FB_DEFAULT_BG);
     kprintf("[OK] ");
-    kprintf_set_color(0x00CCCCCC, 0x001A1A2E);
+    kprintf_set_color(0x00CCCCCC, FB_DEFAULT_BG);
     kprintf("PS/2 controller: port1=%s, port2=%s\n",
             (ports_detected & 1) ? "keyboard" : "none",
             (ports_detected & 2) ? "mouse" : "none");

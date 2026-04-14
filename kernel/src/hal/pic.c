@@ -61,9 +61,9 @@ void pic_init(void) {
     /* Unmask cascade line (IRQ2) so PIC2 IRQs can fire */
     pic_clear_mask(2);
 
-    kprintf_set_color(0x0088FF88, 0x001A1A2E);
+    kprintf_set_color(0x0088FF88, FB_DEFAULT_BG);
     kprintf("[OK] ");
-    kprintf_set_color(0x00CCCCCC, 0x001A1A2E);
+    kprintf_set_color(0x00CCCCCC, FB_DEFAULT_BG);
     kprintf("PIC remapped: IRQ0-7 -> INT 32-39, IRQ8-15 -> INT 40-47\n");
 }
 

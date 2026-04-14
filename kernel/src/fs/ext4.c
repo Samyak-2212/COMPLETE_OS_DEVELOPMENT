@@ -286,9 +286,9 @@ vfs_node_t *ext4_mount(disk_partition_t *part) {
     strncpy(label, sb->volume_name, 16);
     if (label[0] == 0) strncpy(label, "EXT4_VOL", 8);
 
-    kprintf_set_color(0x00FF88FF, 0x001A1A2E);
+    kprintf_set_color(0x00FF88FF, FB_DEFAULT_BG);
     kprintf("[EXT4] ");
-    kprintf_set_color(0x00CCCCCC, 0x001A1A2E);
+    kprintf_set_color(0x00CCCCCC, FB_DEFAULT_BG);
     kprintf("Mounted VOLUME '%s' (Block Size: %u bytes)\n", label, fs->block_size);
 
     return root;

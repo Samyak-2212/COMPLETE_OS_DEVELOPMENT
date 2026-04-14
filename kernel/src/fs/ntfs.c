@@ -593,9 +593,9 @@ vfs_node_t *ntfs_mount(disk_partition_t *part)
     nd->file_size        = 0;
     root->impl = nd;
 
-    kprintf_set_color(0x0088FF88, 0x001A1A2E);
+    kprintf_set_color(0x0088FF88, FB_DEFAULT_BG);
     kprintf("[NTFS] ");
-    kprintf_set_color(0x00CCCCCC, 0x001A1A2E);
+    kprintf_set_color(0x00CCCCCC, FB_DEFAULT_BG);
     kprintf("Mounted NTFS volume (Cluster: %u B, MFT record: %u B)\n",
             cluster_size, mft_record_size);
 

@@ -278,7 +278,7 @@ void devfs_init(void)
 
     /* Mount devfs at /dev (replaces the ramfs stub directory) */
     if (vfs_mount("/dev", g_devfs_root) != 0) {
-        kprintf_set_color(0x00FF4444, 0x001A1A2E);
+        kprintf_set_color(0x00FF4444, FB_DEFAULT_BG);
         kprintf("[DevFS] ERROR: vfs_mount(\"/dev\") failed\n");
         return;
     }
@@ -286,9 +286,9 @@ void devfs_init(void)
     /* Mark ready AFTER mount so register_block guards work correctly */
     g_devfs_ready = 1;
 
-    kprintf_set_color(0x0088FF88, 0x001A1A2E);
+    kprintf_set_color(0x0088FF88, FB_DEFAULT_BG);
     kprintf("[DevFS] ");
-    kprintf_set_color(0x00CCCCCC, 0x001A1A2E);
+    kprintf_set_color(0x00CCCCCC, FB_DEFAULT_BG);
     kprintf("Mounted at /dev (null, zero, tty0 ready)\n");
 }
 
@@ -316,9 +316,9 @@ void devfs_register_block(const char *name, ata_drive_t *drive,
 
     devfs_append(name, bnode);
 
-    kprintf_set_color(0x0088FF88, 0x001A1A2E);
+    kprintf_set_color(0x0088FF88, FB_DEFAULT_BG);
     kprintf("[DevFS] ");
-    kprintf_set_color(0x00CCCCCC, 0x001A1A2E);
+    kprintf_set_color(0x00CCCCCC, FB_DEFAULT_BG);
     kprintf("/dev/%s registered (%llu sectors)\n",
             name, (unsigned long long)size_sectors);
 }

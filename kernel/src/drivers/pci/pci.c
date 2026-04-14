@@ -174,9 +174,9 @@ static void pci_check_function(uint8_t bus, uint8_t device, uint8_t function) {
 
     const char *class_str = pci_get_class_name(dev->class_code, dev->subclass_code);
 
-    kprintf_set_color(0x0088FF88, 0x001A1A2E);
+    kprintf_set_color(0x0088FF88, FB_DEFAULT_BG);
     kprintf("[PCI] ");
-    kprintf_set_color(0x00CCCCCC, 0x001A1A2E);
+    kprintf_set_color(0x00CCCCCC, FB_DEFAULT_BG);
     kprintf("%02x:%02x.%x %04x:%04x (%s)\n", 
             bus, device, function, vendor_id, dev->device_id, class_str);
 
@@ -219,9 +219,9 @@ void pci_init(void) {
     /* Start recursive scan from Bus 0 */
     pci_scan_bus(0);
 
-    kprintf_set_color(0x0088FF88, 0x001A1A2E);
+    kprintf_set_color(0x0088FF88, FB_DEFAULT_BG);
     kprintf("[OK] ");
-    kprintf_set_color(0x00CCCCCC, 0x001A1A2E);
+    kprintf_set_color(0x00CCCCCC, FB_DEFAULT_BG);
     kprintf("Discovered %d PCI devices\n", pci_device_count);
 }
 

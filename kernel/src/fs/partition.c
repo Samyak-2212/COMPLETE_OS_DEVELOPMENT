@@ -68,9 +68,9 @@ int partition_parse_mbr(ata_drive_t *drive) {
         p->lba_start = entries[i].lba_start;
         p->size_sectors = entries[i].size_in_sectors;
         
-        kprintf_set_color(0x0088FF88, 0x001A1A2E);
+        kprintf_set_color(0x0088FF88, FB_DEFAULT_BG);
         kprintf("[PART] ");
-        kprintf_set_color(0x00CCCCCC, 0x001A1A2E);
+        kprintf_set_color(0x00CCCCCC, FB_DEFAULT_BG);
         kprintf("Drive %s, Part %d: TYPE=0x%02x, LBA=0x%lx, SIZE=%u\n", 
                 drive->drive_name, i,
                 p->os_type, (unsigned long)p->lba_start, (uint32_t)p->size_sectors);
@@ -176,9 +176,9 @@ int partition_parse_gpt(ata_drive_t *drive) {
         p->lba_start = entries[i].starting_lba;
         p->size_sectors = entries[i].ending_lba - entries[i].starting_lba + 1;
 
-        kprintf_set_color(0x0088FF88, 0x001A1A2E);
+        kprintf_set_color(0x0088FF88, FB_DEFAULT_BG);
         kprintf("[PART] ");
-        kprintf_set_color(0x00CCCCCC, 0x001A1A2E);
+        kprintf_set_color(0x00CCCCCC, FB_DEFAULT_BG);
         kprintf("Drive %s, Part %d: LBA=0x%lx, SIZE=%u\n", 
                 drive->drive_name, i, (unsigned long)p->lba_start, (uint32_t)p->size_sectors);
 

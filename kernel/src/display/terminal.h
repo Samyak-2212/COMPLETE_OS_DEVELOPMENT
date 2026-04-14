@@ -9,6 +9,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "drivers/video/framebuffer.h"
 
 /* ANSI Standard Colors (4-bit palette) */
 #define TERM_COLOR_BLACK          0x00000000
@@ -30,8 +31,8 @@
 #define TERM_COLOR_NEON_GREEN     0x0039FF14
 
 /* ANSI Default Colors */
-#define TERM_DEFAULT_FG           TERM_COLOR_LIGHT_GRAY
-#define TERM_DEFAULT_BG           0x001A1A2E
+#define TERM_DEFAULT_FG           FB_DEFAULT_FG
+#define TERM_DEFAULT_BG           FB_DEFAULT_BG
 
 /* Parser states */
 typedef enum {
@@ -53,6 +54,7 @@ typedef struct {
     
     uint32_t fg_color;
     uint32_t bg_color;
+    bool     bold;
     
     /* VT100 Parser State */
     terminal_vt_state_t state;

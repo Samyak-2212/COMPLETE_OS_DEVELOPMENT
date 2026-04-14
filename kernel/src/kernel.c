@@ -67,7 +67,7 @@ static void kpanic(const char *msg) {
     
     debugger_panic_hook(msg, &ctx);
 
-    kprintf_set_color(0x00FF4444, 0x001A1A2E);
+    kprintf_set_color(0x00FF4444, FB_DEFAULT_BG);
     kprintf("\n!!! KERNEL PANIC: %s\n", msg);
     hcf();
 }
@@ -110,10 +110,10 @@ void kmain(void) {
     debug_set_mode(DEBUG_MODE_HR);
     debug_log(DEBUG_LEVEL_INFO, "BOOT", "NexusOS Kernel Boot Sequence Started");
 
-    framebuffer_clear(0x001A1A2E);  /* Dark navy blue */
+    framebuffer_clear(FB_DEFAULT_BG);  /* Dark navy blue */
 
     /* 4. Print boot banner */
-    kprintf_set_color(0x0000CCFF, 0x001A1A2E);
+    kprintf_set_color(0x0000CCFF, FB_DEFAULT_BG);
     kprintf("  _   _                       ___  ____  \n");
     kprintf(" | \\ | | _____  ___   _ ___  / _ \\/ ___| \n");
     kprintf(" |  \\| |/ _ \\ \\/ / | | / __|/ | | \\___ \\ \n");
@@ -121,16 +121,16 @@ void kmain(void) {
     kprintf(" |_| \\_|\\___/_/\\_\\\\__,_|___/\\___/|____/ \n");
     kprintf("\n");
 
-    kprintf_set_color(0x00FFFFFF, 0x001A1A2E);
+    kprintf_set_color(0x00FFFFFF, FB_DEFAULT_BG);
     kprintf("  NexusOS v%d.%d.%d \"%s\" — x86_64 Monolithic Kernel\n\n",
             NEXUS_VERSION_MAJOR, NEXUS_VERSION_MINOR,
             NEXUS_VERSION_PATCH, NEXUS_CODENAME);
 
     /* 5. Print boot info */
     const framebuffer_info_t *fb = framebuffer_get_info();
-    kprintf_set_color(0x0088FF88, 0x001A1A2E);
+    kprintf_set_color(0x0088FF88, FB_DEFAULT_BG);
     kprintf("[OK] ");
-    kprintf_set_color(0x00CCCCCC, 0x001A1A2E);
+    kprintf_set_color(0x00CCCCCC, FB_DEFAULT_BG);
     kprintf("Framebuffer: %ux%u @ %u BPP\n",
             (unsigned int)fb->width, (unsigned int)fb->height,
             (unsigned int)fb->bpp);
@@ -144,9 +144,9 @@ void kmain(void) {
                 total_usable += memmap->entries[i]->length;
             }
         }
-        kprintf_set_color(0x0088FF88, 0x001A1A2E);
+        kprintf_set_color(0x0088FF88, FB_DEFAULT_BG);
         kprintf("[OK] ");
-        kprintf_set_color(0x00CCCCCC, 0x001A1A2E);
+        kprintf_set_color(0x00CCCCCC, FB_DEFAULT_BG);
         kprintf("Memory: %llu MiB usable (%llu entries)\n",
                 (unsigned long long)(total_usable / (1024 * 1024)),
                 (unsigned long long)memmap->entry_count);
@@ -161,9 +161,9 @@ void kmain(void) {
         if (fw->firmware_type == LIMINE_FIRMWARE_TYPE_X86BIOS) fw_type = "BIOS";
         else if (fw->firmware_type == LIMINE_FIRMWARE_TYPE_EFI32) fw_type = "UEFI 32-bit";
         else if (fw->firmware_type == LIMINE_FIRMWARE_TYPE_EFI64) fw_type = "UEFI 64-bit";
-        kprintf_set_color(0x0088FF88, 0x001A1A2E);
+        kprintf_set_color(0x0088FF88, FB_DEFAULT_BG);
         kprintf("[OK] ");
-        kprintf_set_color(0x00CCCCCC, 0x001A1A2E);
+        kprintf_set_color(0x00CCCCCC, FB_DEFAULT_BG);
         kprintf("Firmware: %s\n", fw_type);
     }
 
@@ -171,9 +171,9 @@ void kmain(void) {
      * Phase 2: Core kernel infrastructure
      * ================================================================ */
 
-    kprintf_set_color(0x00FFCC00, 0x001A1A2E);
+    kprintf_set_color(0x00FFCC00, FB_DEFAULT_BG);
     kprintf("\n--- Phase 2: Core Kernel Init ---\n\n");
-    kprintf_set_color(0x00CCCCCC, 0x001A1A2E);
+    kprintf_set_color(0x00CCCCCC, FB_DEFAULT_BG);
 
     /* 3. Load our GDT + TSS */
     debug_log(DEBUG_LEVEL_INFO, "BOOT", "Initializing GDT...");
@@ -260,12 +260,12 @@ void kmain(void) {
     sti();
     debug_log(DEBUG_LEVEL_INFO, "BOOT", "Interrupts enabled.");
 
-    kprintf_set_color(0x0088FF88, 0x001A1A2E);
+    kprintf_set_color(0x0088FF88, FB_DEFAULT_BG);
     kprintf("[OK] ");
-    kprintf_set_color(0x00CCCCCC, 0x001A1A2E);
+    kprintf_set_color(0x00CCCCCC, FB_DEFAULT_BG);
     kprintf("Interrupts enabled (Virtual Wire Mode)\n");
 
-    kprintf_set_color(0x00CCCCCC, 0x001A1A2E);
+    kprintf_set_color(0x00CCCCCC, FB_DEFAULT_BG);
 
     /* 15. Mount Root RAM Filesystem */
     vfs_root = ramfs_init();
@@ -277,9 +277,9 @@ void kmain(void) {
      * Phase 3: Hardware & Storage Initialization
      * ================================================================ */
 
-    kprintf_set_color(0x00FFCC00, 0x001A1A2E);
+    kprintf_set_color(0x00FFCC00, FB_DEFAULT_BG);
     kprintf("\n--- Phase 3: Hardware & Storage Initialization ---\n\n");
-    kprintf_set_color(0x00CCCCCC, 0x001A1A2E);
+    kprintf_set_color(0x00CCCCCC, FB_DEFAULT_BG);
 
     /* 16. Driver Registration & Hardware Discovery */
     kprintf("Registering storage drivers...\n");
@@ -294,11 +294,11 @@ void kmain(void) {
      * Initialization complete — Test and demo
      * ================================================================ */
 
-    kprintf_set_color(0x00FFCC00, 0x001A1A2E);
+    kprintf_set_color(0x00FFCC00, FB_DEFAULT_BG);
     kprintf("\n--- Boot Complete ---\n\n");
 
     /* Test PMM */
-    kprintf_set_color(0x00AAAAFF, 0x001A1A2E);
+    kprintf_set_color(0x00AAAAFF, FB_DEFAULT_BG);
     uint64_t test_page = pmm_alloc_page();
     kprintf("  PMM test: alloc=0x%016llx", (unsigned long long)test_page);
     pmm_free_page(test_page);
@@ -317,7 +317,7 @@ void kmain(void) {
      * Phase 3: Terminal & Shell
      * ================================================================ */
 
-    kprintf_set_color(0x00FFCC00, 0x001A1A2E);
+    kprintf_set_color(0x00FFCC00, FB_DEFAULT_BG);
     debug_log(DEBUG_LEVEL_INFO, "BOOT", "Launching Kernel Shell...");
     
     /* Late-allocate terminal backbuffers now that heap is online */

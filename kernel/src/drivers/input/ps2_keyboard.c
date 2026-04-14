@@ -277,9 +277,9 @@ void ps2_keyboard_init(void) {
     isr_register_handler(IRQ1, keyboard_irq_handler);
     pic_clear_mask(1);
 
-    kprintf_set_color(0x0088FF88, 0x001A1A2E);
+    kprintf_set_color(0x0088FF88, FB_DEFAULT_BG);
     kprintf("[OK] ");
-    kprintf_set_color(0x00CCCCCC, 0x001A1A2E);
+    kprintf_set_color(0x00CCCCCC, FB_DEFAULT_BG);
     kprintf("PS/2 keyboard initialized (IRQ1, Scan Code Set 2)\n");
 }
 

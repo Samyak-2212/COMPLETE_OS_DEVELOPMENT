@@ -59,7 +59,7 @@ void heap_init(uint64_t initial_pages) {
 
     /* Map initial pages */
     if (heap_grow(initial_pages) != 0) {
-        kprintf_set_color(0x00FF4444, 0x001A1A2E);
+        kprintf_set_color(0x00FF4444, FB_DEFAULT_BG);
         kprintf("[FAIL] Heap: Could not allocate initial pages\n");
         return;
     }
@@ -72,9 +72,9 @@ void heap_init(uint64_t initial_pages) {
     heap_start->free = 1;
     heap_start->next = (void *)0;
 
-    kprintf_set_color(0x0088FF88, 0x001A1A2E);
+    kprintf_set_color(0x0088FF88, FB_DEFAULT_BG);
     kprintf("[OK] ");
-    kprintf_set_color(0x00CCCCCC, 0x001A1A2E);
+    kprintf_set_color(0x00CCCCCC, FB_DEFAULT_BG);
     kprintf("Heap: %llu KiB at virt 0x%016llx\n",
             (unsigned long long)(heap_total_size / 1024),
             (unsigned long long)heap_virt_base);
