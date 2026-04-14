@@ -70,6 +70,15 @@ static volatile struct limine_executable_address_request exec_addr_request = {
     .revision = 0
 };
 
+/* ── Executable file request ─────────────────────────────────────────────── */
+
+/* Get kernel binary file in memory (for symbols) */
+__attribute__((used, section(".limine_requests")))
+static volatile struct limine_executable_file_request exec_file_request = {
+    .id = LIMINE_EXECUTABLE_FILE_REQUEST_ID,
+    .revision = 0
+};
+
 /* ── Stack size request ──────────────────────────────────────────────────── */
 
 /* Request larger initial stack (128 KiB) */
@@ -115,6 +124,10 @@ struct limine_rsdp_response *limine_get_rsdp(void) {
 
 struct limine_executable_address_response *limine_get_exec_addr(void) {
     return exec_addr_request.response;
+}
+
+struct limine_executable_file_response *limine_get_exec_file(void) {
+    return exec_file_request.response;
 }
 
 struct limine_firmware_type_response *limine_get_firmware_type(void) {

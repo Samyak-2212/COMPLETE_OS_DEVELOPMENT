@@ -1,42 +1,13 @@
 #ifndef DEBUG_H
 #define DEBUG_H
 
-#include <stdint.h>
-#include <stddef.h>
+#include <debugger.h>
 
-/* Debug levels */
-typedef enum {
-    DEBUG_LEVEL_INFO,
-    DEBUG_LEVEL_WARN,
-    DEBUG_LEVEL_ERROR,
-    DEBUG_LEVEL_PANIC
-} debug_level_t;
-
-/* Debug modes */
-#define DEBUG_MODE_JSON    0
-#define DEBUG_MODE_HR      1
-
-#ifdef DEBUGGER_ENABLED
-/* Set global debug mode (JSON vs Human Readable) */
-void debug_set_mode(int mode);
-
-/* Initialize Debugger */
-void debug_init(void);
-
-/* Formatted log to serial */
-void debug_log(debug_level_t level, const char *component, const char *fmt, ...);
-
-/* Memory dump */
-void debug_dump_mem(const void *addr, size_t len);
-
-/* Stack trace from current location */
-void debug_backtrace(void);
-#else
-#define debug_set_mode(mode) ((void)0)
-#define debug_init()         ((void)0)
-#define debug_log(...)       ((void)0)
-#define debug_dump_mem(a, l) ((void)a, (void)l)
-#define debug_backtrace()    ((void)0)
-#endif
+/* 
+ * Compatibility Shim for NexusDebugger.
+ * The implementation is now in the debugger/ directory.
+ * This file remains for backward compatibility with kernel modules
+ * that include "lib/debug.h".
+ */
 
 #endif /* DEBUG_H */

@@ -270,3 +270,21 @@ struct limine_rsdp_response     *limine_get_rsdp(void);
 struct limine_firmware_type_response *limine_get_firmware_type(void);
 int limine_base_revision_supported(void);
 ```
+
+---
+
+## 14. Debugger Subsystem (`debugger/include/debugger.h`)
+```c
+void debugger_init(void);                    // Initialize COM1 + Protocol
+void debugger_break(void);                   // Trigger software breakpoint (INT 3)
+void debugger_watch(void *addr, size_t len, int type); // x64 DR0 Hardware Watchpoint
+bool debugger_is_present(void);              // Check if DEBUGGER=1 is active
+
+/* Symbolic Resolution */
+const char* debugger_resolve_symbol(uint64_t addr, uint64_t *offset);
+
+/* Safe Memory Access */
+bool debugger_mem_read(void *dest, const void *src, size_t len);
+bool debugger_mem_write(void *dest, const void *src, size_t len);
+```
+

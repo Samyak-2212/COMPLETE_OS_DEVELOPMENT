@@ -45,7 +45,8 @@
 - [x] 3.11 Display manager (terminal↔GUI switching)
 - [x] 3.12 Kernel shell (21 Linux-like commands, some as STUBS)
 - [x] 3.13 devfs (/dev)
-- [x] 3.V Verification — kernel shell functional, storage partitions detected
+- [x] 3.14 NexusDebugger (Advanced Agent Diagnostic Subsystem)
+- [x] 3.V Verification — kernel shell functional, storage partitions detected, debugger verified via WSL
 
 ## Phase 4: Multitasking, USB, Userspace
 - [ ] 4.1 Process/thread model

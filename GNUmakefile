@@ -12,8 +12,29 @@ ARCH := x86_64
 # Configuration (release by default)
 BUILD_CONFIG := release
 
+# Debugger Toggle (1 = enabled, 0 = disabled)
+# Defaults to 1 if BUILD_CONFIG is debug, otherwise 0.
+ifeq ($(BUILD_CONFIG),debug)
+    DEBUGGER ?= 1
+else
+    DEBUGGER ?= 0
+endif
+
 # Default QEMU flags.
 QEMUFLAGS :=
+
+# ── Launch Logic ───────────────────────────────────────────────────────────
+# If 'run' or any 'run-*' target is on the command line, we enable QEMU execution.
+# This allows 'make bios' to build only, and 'make run bios' to build and run.
+SHOULD_RUN := 0
+ifneq ($(filter run run-%,$(MAKECMDGOALS)),)
+    SHOULD_RUN := 1
+endif
+
+# If the ONLY target is 'run', default to 'run uefi'.
+ifeq ($(MAKECMDGOALS),run)
+    # We will trigger the uefi target with SHOULD_RUN forced to 1.
+endif
 
 override IMAGE_NAME := nexusos-$(ARCH)
 
@@ -46,38 +67,41 @@ QEMU_UEFI_FLAGS := -drive if=pflash,unit=0,format=raw,file=edk2-ovmf/ovmf-code-$
 .PHONY: bios uefi bios-ntfs uefi-ntfs bios-noscreen uefi-noscreen bios-ntfs-noscreen uefi-ntfs-noscreen
 
 bios: $(IMAGE_NAME).iso
-	$(QEMU) $(QEMU_COMMON) $(QEMU_BIOS_FLAGS)
+	$(if $(filter 1,$(SHOULD_RUN)), $(QEMU) $(QEMU_COMMON) $(QEMU_BIOS_FLAGS))
 
 uefi: $(IMAGE_NAME).iso .build/ovmf/ovmf-vars.fd
-	$(QEMU) $(QEMU_COMMON) $(QEMU_UEFI_FLAGS)
+	$(if $(filter 1,$(SHOULD_RUN)), $(QEMU) $(QEMU_COMMON) $(QEMU_UEFI_FLAGS))
 
 bios-ntfs: $(IMAGE_NAME).iso
-	@if [ ! -f ntfs_test.img ]; then echo "WARNING: ntfs_test.img not found. Use make_ntfs_img.sh to create it."; exit 1; fi
-	$(QEMU) $(QEMU_COMMON) $(QEMU_BIOS_FLAGS) -hdb ntfs_test.img
+	@if [ "$(SHOULD_RUN)" = "1" ] && [ ! -f ntfs_test.img ]; then echo "WARNING: ntfs_test.img not found. Use make_ntfs_img.sh to create it."; exit 1; fi
+	$(if $(filter 1,$(SHOULD_RUN)), $(QEMU) $(QEMU_COMMON) $(QEMU_BIOS_FLAGS) -hdb ntfs_test.img)
 
 uefi-ntfs: $(IMAGE_NAME).iso .build/ovmf/ovmf-vars.fd
-	@if [ ! -f ntfs_test.img ]; then echo "WARNING: ntfs_test.img not found. Use make_ntfs_img.sh to create it."; exit 1; fi
-	$(QEMU) $(QEMU_COMMON) $(QEMU_UEFI_FLAGS) -hdb ntfs_test.img
+	@if [ "$(SHOULD_RUN)" = "1" ] && [ ! -f ntfs_test.img ]; then echo "WARNING: ntfs_test.img not found. Use make_ntfs_img.sh to create it."; exit 1; fi
+	$(if $(filter 1,$(SHOULD_RUN)), $(QEMU) $(QEMU_COMMON) $(QEMU_UEFI_FLAGS) -hdb ntfs_test.img)
 
 bios-noscreen: $(IMAGE_NAME).iso
-	$(QEMU) $(QEMU_COMMON) $(QEMU_BIOS_FLAGS) -display none
+	$(if $(filter 1,$(SHOULD_RUN)), $(QEMU) $(QEMU_COMMON) $(QEMU_BIOS_FLAGS) -display none)
 
 uefi-noscreen: $(IMAGE_NAME).iso .build/ovmf/ovmf-vars.fd
-	$(QEMU) $(QEMU_COMMON) $(QEMU_UEFI_FLAGS) -display none
+	$(if $(filter 1,$(SHOULD_RUN)), $(QEMU) $(QEMU_COMMON) $(QEMU_UEFI_FLAGS) -display none)
 
 bios-ntfs-noscreen: $(IMAGE_NAME).iso
-	@if [ ! -f ntfs_test.img ]; then echo "WARNING: ntfs_test.img not found. Use make_ntfs_img.sh to create it."; exit 1; fi
-	$(QEMU) $(QEMU_COMMON) $(QEMU_BIOS_FLAGS) -hdb ntfs_test.img -display none
+	@if [ "$(SHOULD_RUN)" = "1" ] && [ ! -f ntfs_test.img ]; then echo "WARNING: ntfs_test.img not found. Use make_ntfs_img.sh to create it."; exit 1; fi
+	$(if $(filter 1,$(SHOULD_RUN)), $(QEMU) $(QEMU_COMMON) $(QEMU_BIOS_FLAGS) -hdb ntfs_test.img -display none)
 
 uefi-ntfs-noscreen: $(IMAGE_NAME).iso .build/ovmf/ovmf-vars.fd
-	@if [ ! -f ntfs_test.img ]; then echo "WARNING: ntfs_test.img not found. Use make_ntfs_img.sh to create it."; exit 1; fi
-	$(QEMU) $(QEMU_COMMON) $(QEMU_UEFI_FLAGS) -hdb ntfs_test.img -display none
+	@if [ "$(SHOULD_RUN)" = "1" ] && [ ! -f ntfs_test.img ]; then echo "WARNING: ntfs_test.img not found. Use make_ntfs_img.sh to create it."; exit 1; fi
+	$(if $(filter 1,$(SHOULD_RUN)), $(QEMU) $(QEMU_COMMON) $(QEMU_UEFI_FLAGS) -hdb ntfs_test.img -display none)
 
-# Legacy run targets (for backward compatibility)
-.PHONY: run run-bios run-uefi
-run: uefi
-run-bios: bios
-run-uefi: uefi
+# ── Launch Targets ──────────────────────────────────────────────────────────
+.PHONY: run run-%
+# 'make run' with no target defaults to UEFI boot.
+run:
+	@if [ "$(MAKECMDGOALS)" = "run" ]; then $(MAKE) uefi SHOULD_RUN=1; fi
+
+# Pattern rule: 'make run-xxx' is equivalent to 'make run xxx'
+run-%: % ;
 
 # ── External dependencies ──────────────────────────────────────────────────
 edk2-ovmf:
@@ -99,7 +123,7 @@ kernel/.deps-obtained:
 
 .PHONY: kernel
 kernel: kernel/.deps-obtained
-	$(MAKE) -C kernel BUILD_CONFIG=$(BUILD_CONFIG)
+	$(MAKE) -C kernel BUILD_CONFIG=$(BUILD_CONFIG) DEBUGGER=$(DEBUGGER)
 
 # ── ISO generation ──────────────────────────────────────────────────────────
 $(IMAGE_NAME).iso: limine/limine kernel

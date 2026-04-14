@@ -25,8 +25,11 @@ struct limine_hhdm_response *limine_get_hhdm(void);
 /* Get ACPI RSDP table pointer response */
 struct limine_rsdp_response *limine_get_rsdp(void);
 
-/* Get kernel executable load addresses response */
+/* Get kernel load addresses (physical + virtual) */
 struct limine_executable_address_response *limine_get_exec_addr(void);
+
+/* Get kernel executable file response (ELF structure) */
+struct limine_executable_file_response *limine_get_exec_file(void);
 
 /* Get firmware type (BIOS vs UEFI) response */
 struct limine_firmware_type_response *limine_get_firmware_type(void);

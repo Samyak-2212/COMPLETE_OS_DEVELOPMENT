@@ -56,8 +56,17 @@ static void hcf(void) {
 }
 
 static void kpanic(const char *msg) {
+    debugger_context_t ctx;
+    /* Basic context capture for panic */
+    __asm__ volatile ("lea 0(%%rip), %0" : "=r"(ctx.rip));
+    __asm__ volatile ("mov %%rsp, %0" : "=r"(ctx.rsp));
+    __asm__ volatile ("mov %%rbp, %0" : "=r"(ctx.rbp));
+    
     debug_log(DEBUG_LEVEL_PANIC, "KERNEL", "PANIC: %s\n", msg);
     debug_backtrace();
+    
+    debugger_panic_hook(msg, &ctx);
+
     kprintf_set_color(0x00FF4444, 0x001A1A2E);
     kprintf("\n!!! KERNEL PANIC: %s\n", msg);
     hcf();
@@ -92,6 +101,12 @@ void kmain(void) {
     
     /* 3.5 Initialize Debugger (COM1) */
     debug_init();
+    
+#ifdef DEBUGGER_ENABLED
+    extern void debugger_symbols_init(void);
+    debugger_symbols_init();
+#endif
+
     debug_set_mode(DEBUG_MODE_HR);
     debug_log(DEBUG_LEVEL_INFO, "BOOT", "NexusOS Kernel Boot Sequence Started");
 

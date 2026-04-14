@@ -7,6 +7,7 @@ ROOT_DIR = os.getcwd()
 SRC_DIR = os.path.join(ROOT_DIR, "kernel", "src")
 TASK_PATH = os.path.join(ROOT_DIR, "knowledge_items", "nexusos-task-tracker", "artifacts", "task.md")
 REPORT_PATH = os.path.join(ROOT_DIR, "knowledge_items", "nexusos-progress-report", "artifacts", "progress_report.md")
+DEBUGGER_DIR = os.path.join(ROOT_DIR, "debugger")
 GITIGNORE_PATH = os.path.join(ROOT_DIR, ".gitignore")
 
 def get_ignore_rules():
@@ -40,6 +41,15 @@ def count_source_files():
             if file.endswith(('.c', '.h', '.asm')):
                 if not is_ignored(rel_path, rules):
                     count += 1
+    
+    if os.path.exists(DEBUGGER_DIR):
+        for root, dirs, files in os.walk(DEBUGGER_DIR):
+            for file in files:
+                full_path = os.path.join(root, file)
+                rel_path = os.path.relpath(full_path, ROOT_DIR)
+                if file.endswith(('.c', '.h', '.asm')):
+                    if not is_ignored(rel_path, rules):
+                        count += 1
     return count
 
 def check_docs():
@@ -56,7 +66,7 @@ def check_docs():
             if match:
                 documented_count = int(match.group(1))
     
-    print(f"Source Files (kernel/src):")
+    print(f"Source Files (kernel/src + debugger):")
     print(f"  Actual: {actual_count}")
     print(f"  Documented: {documented_count}")
     

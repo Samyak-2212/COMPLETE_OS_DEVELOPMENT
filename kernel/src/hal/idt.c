@@ -23,6 +23,12 @@ static isr_handler_t isr_handlers[256];
 extern void isr_stub_0(void);   extern void isr_stub_1(void);
 extern void isr_stub_2(void);   extern void isr_stub_3(void);
 extern void isr_stub_4(void);   extern void isr_stub_5(void);
+
+#ifdef DEBUGGER_ENABLED
+extern void debugger_trap_entry_int1(void);
+extern void debugger_trap_entry_int3(void);
+extern void debugger_trap_entry_int8(void);
+#endif
 extern void isr_stub_6(void);   extern void isr_stub_7(void);
 extern void isr_stub_8(void);   extern void isr_stub_9(void);
 extern void isr_stub_10(void);  extern void isr_stub_11(void);
@@ -169,7 +175,15 @@ void idt_init(void) {
     /* CPU exceptions (0-31): interrupt gates, IST=0 except double fault */
     for (int i = 0; i < 32; i++) {
         uint8_t ist = (i == 8) ? 1 : 0; /* Double fault uses IST1 */
-        idt_set_gate((uint8_t)i, (uint64_t)stubs[i], GDT_KERNEL_CODE,
+        uint64_t handler = (uint64_t)stubs[i];
+
+#ifdef DEBUGGER_ENABLED
+        if (i == 1) handler = (uint64_t)debugger_trap_entry_int1;
+        if (i == 3) handler = (uint64_t)debugger_trap_entry_int3;
+        if (i == 8) handler = (uint64_t)debugger_trap_entry_int8;
+#endif
+
+        idt_set_gate((uint8_t)i, handler, GDT_KERNEL_CODE,
                      ist, IDT_GATE_INTERRUPT);
     }
 

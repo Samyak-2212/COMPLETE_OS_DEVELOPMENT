@@ -48,13 +48,14 @@ All tasks complete. PCI enumerated, ATA/AHCI drivers functional, VFS with multip
 | **Terminal** | ✅ | VT100 emulation, ANSI colors, line editing. |
 | **Shell** | ✅ | Modular command registration (Basic commands R/W, complex as STUBS). |
 | **devfs** | ✅ | Unified device nodes in `/dev`. |
+| **Nexus Debugger** | ✅ | Professional agent-friendly serial debugger with NDP protocol, ELF parsing, and hardware watchpoints. |
 
 ## Build Status
 - **Compiler**: GCC (cc) with full freestanding x86_64 flags.
 - **Errors**: 0
 - **Warnings**: 1 (NASM relocation info, harmless).
 - **ISO**: `nexusos-x86_64.iso` generated successfully.
-- **Files created**: 101 source files total.
+- **Files created**: 108 source files total.
 - **Next Phase Ready**: Phase 4 (Multitasking).
 
 ## ⬜ Remaining Phases
