@@ -126,8 +126,12 @@ void     pit_sleep_ms(uint64_t ms); // Busy-wait sleep
 ```c
 int  framebuffer_init(void);      // Parse Limine framebuffer response
 void framebuffer_clear(uint32_t color);
-void framebuffer_putpixel(uint32_t x, uint32_t y, uint32_t color);
+void framebuffer_put_pixel(uint32_t x, uint32_t y, uint32_t color);
 void framebuffer_draw_char(uint32_t x, uint32_t y, char c, uint32_t fg, uint32_t bg);
+
+// UI Theme Constants
+#define FB_DEFAULT_BG   0x00300347
+#define FB_DEFAULT_FG   0x00AAAAAA
 
 typedef struct framebuffer_info {
     uint64_t address;             // Virtual address of framebuffer

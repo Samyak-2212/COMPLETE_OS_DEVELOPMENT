@@ -11,7 +11,7 @@
 #include <stddef.h>
 
 /* Global UI Theme Colors */
-#define FB_DEFAULT_BG   0x001B1020
+#define FB_DEFAULT_BG   0x00300347
 #define FB_DEFAULT_FG   0x00AAAAAA
 
 /* Framebuffer information structure */

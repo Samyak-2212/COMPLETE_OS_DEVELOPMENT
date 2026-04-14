@@ -53,7 +53,7 @@ All tasks complete. PCI enumerated, ATA/AHCI drivers functional, VFS with multip
 ## Build Status
 - **Compiler**: GCC (cc) with full freestanding x86_64 flags.
 - **Errors**: 0
-- **Warnings**: 1 (NASM relocation info, harmless).
+- **Warnings**: 0
 - **ISO**: `nexusos-x86_64.iso` generated successfully.
 - **Files created**: 108 source files total.
 - **Next Phase Ready**: Phase 4 (Multitasking).
