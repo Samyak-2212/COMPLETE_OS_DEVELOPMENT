@@ -93,47 +93,119 @@ void kprintf_set_color(unsigned int fg, unsigned int bg) {
     (void)fg; (void)bg;
 }
 
-/* vsnprintf - minimal kernel implementation for batched writes */
+/* vsnprintf — full kernel implementation for batched writes
+ * Supports: %d %i %u %x %X %p %s %c %%
+ *           length mods: l (long), ll (long long)
+ *           flags: zero-pad, field width (e.g. %02x, %04x, %016lx)
+ */
 int vsnprintf(char *buf, size_t size, const char *fmt, va_list args) {
+    if (!buf || size == 0) return 0;
     size_t pos = 0;
-#ifdef DEBUG_UNUSED_FOR_NOW
-    const char *digits = "0123456789abcdef";
-#endif
 
-    #define APPEND(c) if (pos < size - 1) buf[pos++] = (c)
+    #define VSNPRINTF_APPEND(c) do { if (pos < size - 1) buf[pos++] = (c); } while(0)
+
+    /* Helper: render uint64 into a local buffer, then APPEND in order */
+    #define RENDER_UINT(val64, base, upper, width, pad) do {        \
+        const char *_digs = (upper) ? "0123456789ABCDEF"            \
+                                     : "0123456789abcdef";           \
+        char _tb[20]; int _tp = 0;                                   \
+        uint64_t _v = (val64);                                       \
+        if (_v == 0) { _tb[_tp++] = '0'; }                          \
+        else { while (_v) { _tb[_tp++] = _digs[_v % (base)];        \
+                            _v /= (base); } }                        \
+        while (_tp < (int)(width)) _tb[_tp++] = (pad);              \
+        while (_tp > 0) VSNPRINTF_APPEND(_tb[--_tp]);                \
+    } while(0)
 
     while (*fmt && pos < size - 1) {
-        if (*fmt != '%') {
-            APPEND(*fmt++);
-            continue;
+        if (*fmt != '%') { VSNPRINTF_APPEND(*fmt++); continue; }
+        fmt++; /* skip '%' */
+
+        /* --- flag/width parsing --- */
+        char pad_char = ' ';
+        int  width    = 0;
+
+        if (*fmt == '0') { pad_char = '0'; fmt++; }
+        while (*fmt >= '1' && *fmt <= '9') {
+            width = width * 10 + (*fmt - '0');
+            fmt++;
         }
-        fmt++;
-        
-        /* Parse conversion */
+
+        /* --- length modifier --- */
+        int len_mod = 0; /* 0=int, 1=long, 2=long long */
+        if (*fmt == 'l') {
+            fmt++;
+            if (*fmt == 'l') { fmt++; len_mod = 2; }
+            else              { len_mod = 1; }
+        }
+
+        /* --- conversion --- */
         switch (*fmt) {
+            /* ── signed decimal ─────────────────────────────────────── */
+            case 'd': case 'i': {
+                int64_t val;
+                if      (len_mod == 2) val = (int64_t)va_arg(args, long long);
+                else if (len_mod == 1) val = (int64_t)va_arg(args, long);
+                else                   val = (int64_t)va_arg(args, int);
+                if (val < 0) { VSNPRINTF_APPEND('-'); val = -val; }
+                RENDER_UINT((uint64_t)val, 10, 0, width, pad_char);
+                break;
+            }
+            /* ── unsigned decimal ───────────────────────────────────── */
+            case 'u': {
+                uint64_t val;
+                if      (len_mod == 2) val = (uint64_t)va_arg(args, unsigned long long);
+                else if (len_mod == 1) val = (uint64_t)va_arg(args, unsigned long);
+                else                   val = (uint64_t)(unsigned int)va_arg(args, unsigned int);
+                RENDER_UINT(val, 10, 0, width, pad_char);
+                break;
+            }
+            /* ── hex lowercase ──────────────────────────────────────── */
+            case 'x': {
+                uint64_t val;
+                if      (len_mod == 2) val = (uint64_t)va_arg(args, unsigned long long);
+                else if (len_mod == 1) val = (uint64_t)va_arg(args, unsigned long);
+                else                   val = (uint64_t)(unsigned int)va_arg(args, unsigned int);
+                RENDER_UINT(val, 16, 0, width, pad_char);
+                break;
+            }
+            /* ── hex uppercase ──────────────────────────────────────── */
+            case 'X': {
+                uint64_t val;
+                if      (len_mod == 2) val = (uint64_t)va_arg(args, unsigned long long);
+                else if (len_mod == 1) val = (uint64_t)va_arg(args, unsigned long);
+                else                   val = (uint64_t)(unsigned int)va_arg(args, unsigned int);
+                RENDER_UINT(val, 16, 1, width, pad_char);
+                break;
+            }
+            /* ── pointer ────────────────────────────────────────────── */
+            case 'p': {
+                uint64_t val = (uint64_t)(uintptr_t)va_arg(args, void *);
+                VSNPRINTF_APPEND('0'); VSNPRINTF_APPEND('x');
+                RENDER_UINT(val, 16, 0, 16, '0');
+                break;
+            }
+            /* ── string ─────────────────────────────────────────────── */
             case 's': {
                 const char *s = va_arg(args, const char *);
                 if (!s) s = "(null)";
-                while (*s) { APPEND(*s++); }
+                while (*s) { VSNPRINTF_APPEND(*s++); }
                 break;
             }
-            case 'd': {
-                int64_t val = va_arg(args, int);
-                if (val < 0) { APPEND('-'); val = -val; }
-                char tbuf[20]; int tpos = 0;
-                if (val == 0) tbuf[tpos++] = '0';
-                else while (val > 0) { tbuf[tpos++] = (val % 10) + '0'; val /= 10; }
-                while (tpos > 0) APPEND(tbuf[--tpos]);
-                break;
-            }
-            case 'c': APPEND((char)va_arg(args, int)); break;
-            case '%': APPEND('%'); break;
-            default: APPEND('%'); APPEND(*fmt); break;
+            /* ── char ───────────────────────────────────────────────── */
+            case 'c': VSNPRINTF_APPEND((char)va_arg(args, int)); break;
+            /* ── literal % ──────────────────────────────────────────── */
+            case '%': VSNPRINTF_APPEND('%'); break;
+            /* ── unknown: emit literally ─────────────────────────────── */
+            default:  VSNPRINTF_APPEND('%'); VSNPRINTF_APPEND(*fmt); break;
         }
         fmt++;
     }
     buf[pos] = '\0';
     return (int)pos;
+
+    #undef VSNPRINTF_APPEND
+    #undef RENDER_UINT
 }
 
 /* Kernel formatted print - now optimized with vsnprintf and batched writes */
