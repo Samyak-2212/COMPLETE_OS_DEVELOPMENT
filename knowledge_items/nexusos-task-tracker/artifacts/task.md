@@ -1,5 +1,8 @@
 # NexusOS Development — Task Tracker
 
+> **Last Updated**: 2026-04-17 by Bug-Fix Agent
+> **Current Phase**: Phase 3 COMPLETE ✅ → Phase 4 (NEXT)
+
 ## Phase 0: Initialization ✅
 - [x] Examine repository, research Limine protocol
 - [x] Create architecture specification
@@ -47,6 +50,7 @@
 - [x] 3.13 devfs (/dev)
 - [x] 3.14 NexusDebugger (Advanced Agent Diagnostic Subsystem)
 - [x] 3.V Verification — kernel shell functional, storage partitions detected, debugger verified via WSL
+- [x] 3.BF `vsnprintf` bug fix — added full specifier support (`%u/%x/%X/%p/%lu/%lx/%lld` + width/zero-pad); `lspci` and `free` shell commands now render correctly (BUG-006 RESOLVED)
 
 ## Phase 4: Multitasking, USB, Userspace
 - [ ] 4.1 Process/thread model

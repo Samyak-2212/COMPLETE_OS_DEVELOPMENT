@@ -1,5 +1,9 @@
 # NexusOS Implementation Progress
 
+> **Last Updated**: 2026-04-17 by Bug-Fix Agent
+> **Kernel Version**: 0.1.0 "Genesis"
+> **Current Phase**: Phase 3 COMPLETE ✅ → Phase 4 (NEXT)
+
 ## ✅ Phase 1: Limine Boot + Hello World
 All tasks complete. Kernel boots via Limine, prints banner with system info to framebuffer.
 
@@ -11,7 +15,7 @@ All tasks complete. Kernel boots via Limine, prints banner with system info to f
 | `kernel/linker-scripts/x86_64.lds` | Higher-half linker script |
 | `kernel/src/boot/limine_requests.c` | All Limine request structs |
 | `kernel/src/lib/string.c` | Freestanding string/memory functions |
-| `kernel/src/lib/printf.c` | kprintf with format specifiers |
+| `kernel/src/lib/printf.c` | kprintf + full vsnprintf (%d/%u/%x/%X/%p/%lu/%lx/%lld, zero-pad, width) |
 | `kernel/src/drivers/video/framebuffer.c` | Framebuffer + VGA 8x16 font |
 | `kernel/src/kernel.c` | kmain() entry point |
 
@@ -53,9 +57,11 @@ All tasks complete. PCI enumerated, ATA/AHCI drivers functional, VFS with multip
 ## Build Status
 - **Compiler**: GCC (cc) with full freestanding x86_64 flags.
 - **Errors**: 0
-- **Warnings**: 0
+- **C Warnings**: 0
+- **NASM Warnings**: 1 (32-bit reloc info, pre-existing, harmless)
 - **ISO**: `nexusos-x86_64.iso` generated successfully.
-- **Files created**: 108 source files total.
+- **Files created**: 108 source files (kernel/src + debugger/src)
+- **Recent fix**: `vsnprintf` rewritten — full format specifier support (BUG-006 resolved).
 - **Next Phase Ready**: Phase 4 (Multitasking).
 
 ## ⬜ Remaining Phases
