@@ -123,15 +123,9 @@ uint16_t pic_read_imr(void) {
     return (uint16_t)((inb(PIC2_DATA) << 8) | inb(PIC1_DATA));
 }
 
-#include "lib/debug.h"
 void pic_dump_state(void) {
-#ifdef DEBUGGER_ENABLED
-    uint16_t imr = pic_read_imr();
-    uint16_t isr = pic_get_isr();
-    uint16_t irr = pic_get_irr();
-    debug_log(DEBUG_LEVEL_INFO, "PIC", "State: IMR=0x%04x, ISR=0x%04x, IRR=0x%04x", 
-              (int)imr, (int)isr, (int)irr);
-#endif
+    /* Diagnostic output available in hidbug/lodbug modes (Phase 2 debugger) */
+    (void)0;
 }
 
 /* Read the combined Interrupt Request Register */

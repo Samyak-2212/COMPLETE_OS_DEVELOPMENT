@@ -1,0 +1,6 @@
+# NexusOS QEMU agent boot — LODBUG (interactive debugger). Auto-generated.
+timeout: 0
+/NexusOS [Low-Level Debugger]
+    comment: AI agent interactive console (nxdbg> prompt). Connect at 115200 baud on COM1.
+    protocol: limine
+    path: boot():/boot/nexus-kernel-lod

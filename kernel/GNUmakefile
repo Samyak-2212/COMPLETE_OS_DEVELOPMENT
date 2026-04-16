@@ -14,7 +14,6 @@ ARCH := x86_64
 
 # Configuration (release by default)
 BUILD_CONFIG ?= release
-DEBUGGER ?= 0
 
 # ── Toolchain ───────────────────────────────────────────────────────────────
 TOOLCHAIN :=
@@ -69,20 +68,25 @@ override CFLAGS += \
     -fdata-sections \
     -fno-omit-frame-pointer
 
-# Add debugger macro if enabled
-ifeq ($(DEBUGGER),1)
-    override CFLAGS += -DDEBUGGER_ENABLED=1
+# ── Debug level ────────────────────────────────────────────────────────────
+DEBUG_LEVEL ?= 0
+ifneq ($(DEBUG_LEVEL),0)
+    override CFLAGS += -DDEBUG_LEVEL=$(DEBUG_LEVEL)
 endif
 
 # ── Internal preprocessor flags ────────────────────────────────────────────
 override CPPFLAGS := \
     -I src \
-    -I ../debugger/include \
     -I limine-protocol/include \
     -isystem freestnd-c-hdrs/include \
     $(CPPFLAGS) \
     -MMD \
     -MP
+
+# Add debugger include path when enabled
+ifneq ($(DEBUG_LEVEL),0)
+    override CPPFLAGS += -I ../debugger/include
+endif
 
 # ── Internal NASM flags ────────────────────────────────────────────────────
 override NASMFLAGS := \
@@ -122,54 +126,56 @@ override LDFLAGS += \
 override SRCFILES := $(shell find -L src cc-runtime/src -type f -not -path 'src/arch/*' 2>/dev/null | LC_ALL=C sort)
 override SRCFILES += $(shell find -L src/arch/$(ARCH) -type f 2>/dev/null | LC_ALL=C sort)
 
-# Include debugger files if enabled
-ifeq ($(DEBUGGER),1)
-    override SRCFILES += $(shell find -L ../debugger/src -type f 2>/dev/null | LC_ALL=C sort)
+# Include debugger sources when enabled (normalize path to avoid ../ escape)
+ifneq ($(DEBUG_LEVEL),0)
+    override DBG_RAW := $(shell find -L ../debugger/src -type f 2>/dev/null | LC_ALL=C sort)
+    override DBG_NORM := $(patsubst ../debugger/%,debugger/%,$(DBG_RAW))
+    override SRCFILES += $(DBG_NORM)
 endif
 
-# Filter out legacy/replacement sources if necessary
-# In this case, we have already replaced debug.c/h and serial.c/h with our own versions in src/lib/
-override SRCFILES := $(filter-out %/nothing_to_filter_yet,$(SRCFILES))
+# vpath: let make find debugger/ sources at ../debugger/ on disk
+vpath debugger/% ..
 
 # ── Object file lists ──────────────────────────────────────────────────────
 override CFILES := $(filter %.c,$(SRCFILES))
 override ASFILES := $(filter %.S,$(SRCFILES))
 override NASMFILES := $(filter %.asm,$(SRCFILES))
-override OBJ := $(addprefix obj-$(ARCH)-$(BUILD_CONFIG)-dbg$(DEBUGGER)/,$(CFILES:.c=.c.o) $(ASFILES:.S=.S.o))
-override OBJ += $(addprefix obj-$(ARCH)-$(BUILD_CONFIG)-dbg$(DEBUGGER)/,$(NASMFILES:.asm=.asm.o))
-override HEADER_DEPS := $(addprefix obj-$(ARCH)-$(BUILD_CONFIG)-dbg$(DEBUGGER)/,$(CFILES:.c=.c.d) $(ASFILES:.S=.S.d))
+override OBJ := $(addprefix obj-$(ARCH)-$(BUILD_CONFIG)-dbg$(DEBUG_LEVEL)/,$(CFILES:.c=.c.o) $(ASFILES:.S=.S.o))
+override OBJ += $(addprefix obj-$(ARCH)-$(BUILD_CONFIG)-dbg$(DEBUG_LEVEL)/,$(NASMFILES:.asm=.asm.o))
+override HEADER_DEPS := $(addprefix obj-$(ARCH)-$(BUILD_CONFIG)-dbg$(DEBUG_LEVEL)/,$(CFILES:.c=.c.d) $(ASFILES:.S=.S.d))
 
 # ── Default target ──────────────────────────────────────────────────────────
 .PHONY: all
-all: bin-$(ARCH)/$(OUTPUT)
+all: bin-$(ARCH)-dbg$(DEBUG_LEVEL)/$(OUTPUT)
 
 # ── Include generated dependencies ─────────────────────────────────────────
 -include $(HEADER_DEPS)
 
 # ── Link ────────────────────────────────────────────────────────────────────
-bin-$(ARCH)/$(OUTPUT): GNUmakefile linker-scripts/$(ARCH).lds $(OBJ)
+bin-$(ARCH)-dbg$(DEBUG_LEVEL)/$(OUTPUT): GNUmakefile linker-scripts/$(ARCH).lds $(OBJ)
 	mkdir -p "$(dir $@)"
 	$(LD) $(LDFLAGS) $(OBJ) -o $@
 
 # ── Compile C ───────────────────────────────────────────────────────────────
-obj-$(ARCH)-$(BUILD_CONFIG)-dbg$(DEBUGGER)/%.c.o: %.c GNUmakefile
+obj-$(ARCH)-$(BUILD_CONFIG)-dbg$(DEBUG_LEVEL)/%.c.o: %.c GNUmakefile
 	mkdir -p "$(dir $@)"
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
 
 # ── Compile GNU assembly ───────────────────────────────────────────────────
-obj-$(ARCH)-$(BUILD_CONFIG)-dbg$(DEBUGGER)/%.S.o: %.S GNUmakefile
+obj-$(ARCH)-$(BUILD_CONFIG)-dbg$(DEBUG_LEVEL)/%.S.o: %.S GNUmakefile
 	mkdir -p "$(dir $@)"
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
 
 # ── Assemble NASM ───────────────────────────────────────────────────────────
-obj-$(ARCH)-$(BUILD_CONFIG)-dbg$(DEBUGGER)/%.asm.o: %.asm GNUmakefile
+obj-$(ARCH)-$(BUILD_CONFIG)-dbg$(DEBUG_LEVEL)/%.asm.o: %.asm GNUmakefile
 	mkdir -p "$(dir $@)"
 	nasm $(NASMFLAGS) $< -o $@
 
 # ── Clean ───────────────────────────────────────────────────────────────────
 .PHONY: clean
 clean:
-	rm -rf bin-$(ARCH) obj-$(ARCH)-*
+	rm -rf bin-$(ARCH)-* obj-$(ARCH)-*
+	find ../debugger -name '*.o' -o -name '*.d' | xargs rm -f 2>/dev/null; true
 
 .PHONY: distclean
 distclean:

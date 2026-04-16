@@ -24,10 +24,9 @@ extern void isr_stub_0(void);   extern void isr_stub_1(void);
 extern void isr_stub_2(void);   extern void isr_stub_3(void);
 extern void isr_stub_4(void);   extern void isr_stub_5(void);
 
-#ifdef DEBUGGER_ENABLED
-extern void debugger_trap_entry_int1(void);
-extern void debugger_trap_entry_int3(void);
-extern void debugger_trap_entry_int8(void);
+#if defined(DEBUG_LEVEL) && DEBUG_LEVEL >= 2
+extern void dbg_trap_int1(void);
+extern void dbg_trap_int3(void);
 #endif
 extern void isr_stub_6(void);   extern void isr_stub_7(void);
 extern void isr_stub_8(void);   extern void isr_stub_9(void);
@@ -177,10 +176,9 @@ void idt_init(void) {
         uint8_t ist = (i == 8) ? 1 : 0; /* Double fault uses IST1 */
         uint64_t handler = (uint64_t)stubs[i];
 
-#ifdef DEBUGGER_ENABLED
-        if (i == 1) handler = (uint64_t)debugger_trap_entry_int1;
-        if (i == 3) handler = (uint64_t)debugger_trap_entry_int3;
-        if (i == 8) handler = (uint64_t)debugger_trap_entry_int8;
+#if defined(DEBUG_LEVEL) && DEBUG_LEVEL >= 2
+        if (i == 1) handler = (uint64_t)dbg_trap_int1;
+        if (i == 3) handler = (uint64_t)dbg_trap_int3;
 #endif
 
         idt_set_gate((uint8_t)i, handler, GDT_KERNEL_CODE,

@@ -1,0 +1,5 @@
+# NexusOS QEMU agent boot — Release (no debugger). Auto-generated.
+timeout: 0
+/NexusOS
+    protocol: limine
+    path: boot():/boot/nexus-kernel

@@ -17,7 +17,7 @@
 #include "lib/printf.h"
 #include "lib/string.h"
 #include "lib/debug.h"
-#include "lib/serial.h"
+
 #include "lib/klog.h"
 #include "hal/gdt.h"
 #include "hal/idt.h"
@@ -56,16 +56,8 @@ static void hcf(void) {
 }
 
 static void kpanic(const char *msg) {
-    debugger_context_t ctx;
-    /* Basic context capture for panic */
-    __asm__ volatile ("lea 0(%%rip), %0" : "=r"(ctx.rip));
-    __asm__ volatile ("mov %%rsp, %0" : "=r"(ctx.rsp));
-    __asm__ volatile ("mov %%rbp, %0" : "=r"(ctx.rbp));
-    
-    debug_log(DEBUG_LEVEL_PANIC, "KERNEL", "PANIC: %s\n", msg);
-    debug_backtrace();
-    
-    debugger_panic_hook(msg, &ctx);
+    debug_log(DEBUG_LEVEL_PANIC, "KERNEL", "PANIC: %s", msg);
+    debugger_panic_hook(msg, NULL);
 
     kprintf_set_color(0x00FF4444, FB_DEFAULT_BG);
     kprintf("\n!!! KERNEL PANIC: %s\n", msg);
@@ -98,16 +90,9 @@ void kmain(void) {
 
     /* 3. Initialize kprintf */
     kprintf_init();
-    
-    /* 3.5 Initialize Debugger (COM1) */
-    debug_init();
-    
-#ifdef DEBUGGER_ENABLED
-    extern void debugger_symbols_init(void);
-    debugger_symbols_init();
-#endif
 
-    debug_set_mode(DEBUG_MODE_HR);
+    /* 3.5 Initialize Debugger (serial output) */
+    debug_init();
     debug_log(DEBUG_LEVEL_INFO, "BOOT", "NexusOS Kernel Boot Sequence Started");
 
     framebuffer_clear(FB_DEFAULT_BG);  /* Dark navy blue */

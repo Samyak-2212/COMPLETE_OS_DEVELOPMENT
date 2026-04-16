@@ -350,6 +350,10 @@ void shell_run(void) {
                     }
                 }
             }
+            /* Poll debugger console for serial commands (lodbug mode) */
+#if defined(DEBUG_LEVEL) && DEBUG_LEVEL >= 2
+            dbg_console_poll();
+#endif
             __asm__ volatile("hlt");
         }
     }

@@ -1,0 +1,6 @@
+# NexusOS QEMU agent boot — HIDBUG (serial log mirror). Auto-generated.
+timeout: 0
+/NexusOS [High-Level Debugger]
+    comment: Serial console mirror. Connect at 115200 baud on COM1.
+    protocol: limine
+    path: boot():/boot/nexus-kernel-hid

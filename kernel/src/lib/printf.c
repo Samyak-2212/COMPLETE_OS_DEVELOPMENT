@@ -15,7 +15,9 @@
 #include "display/display_manager.h"
 #include <stdarg.h>
 #include "lib/klog.h"
-#include "lib/serial.h"
+#if defined(DEBUG_LEVEL) && DEBUG_LEVEL >= 1
+#include "nexus_debug.h"
+#endif
 
 /* ── Internal helpers ───────────────────────────────────────────────────── */
 
@@ -23,7 +25,9 @@
 void kputchar(char c) {
     klog_putc(c);
     display_manager_write(&c, 1);
-    serial_putc(c);
+#if defined(DEBUG_LEVEL) && DEBUG_LEVEL >= 1
+    dbg_serial_putc(c);
+#endif
 }
 
 /* Print a null-terminated string */
@@ -31,7 +35,10 @@ void kputs(const char *s) {
     display_manager_write(s, strlen(s));
     while (*s) {
         klog_putc(*s);
-        serial_putc(*s++);
+#if defined(DEBUG_LEVEL) && DEBUG_LEVEL >= 1
+        dbg_serial_putc(*s);
+#endif
+        s++;
     }
 }
 
@@ -62,9 +69,8 @@ static void print_uint64(uint64_t value, int base, int uppercase,
     }
 }
 
-#ifdef DEBUGGER_ENABLED
 /* Print a signed 64-bit integer */
-static void print_int64(int64_t value, int width, char pad) {
+static void __attribute__((unused)) print_int64(int64_t value, int width, char pad) {
     if (value < 0) {
         kputchar('-');
         if (width > 0) width--;
@@ -73,7 +79,6 @@ static void print_int64(int64_t value, int width, char pad) {
         print_uint64((uint64_t)value, 10, 0, width, pad);
     }
 }
-#endif
 
 /* ── Public API ─────────────────────────────────────────────────────────── */
 
@@ -142,10 +147,12 @@ int kprintf(const char *fmt, ...) {
     /* Output to all enabled destinations as a single batch where possible */
     display_manager_write(buf, (uint64_t)len);
     
-    /* Still log to serial and klog */
+    /* Still log to klog (and serial if debugger enabled) */
     for (int i = 0; i < len; i++) {
         klog_putc(buf[i]);
-        serial_putc(buf[i]);
+#if defined(DEBUG_LEVEL) && DEBUG_LEVEL >= 1
+        dbg_serial_putc(buf[i]);
+#endif
     }
 
     return len;

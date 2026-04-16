@@ -46,6 +46,12 @@ SECTIONS
         __shell_commands_start = .;
         KEEP(*(.shell_commands))
         __shell_commands_end = .;
+
+        /* Debugger command auto-registration table */
+        . = ALIGN(8);
+        __dbg_commands_start = .;
+        KEEP(*(.dbg_commands))
+        __dbg_commands_end = .;
     } :rodata
 
     /* Build ID (optional, harmless to include) */
