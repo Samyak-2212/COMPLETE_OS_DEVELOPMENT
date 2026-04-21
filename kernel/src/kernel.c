@@ -43,6 +43,7 @@
 #include "fs/partition.h"
 #include "fs/fat32.h"
 #include "fs/ext4.h"
+#include "drivers/usb/xhci.h"
 
 /* Forward declarations for input manager */
 extern void input_manager_init(void);
@@ -276,6 +277,7 @@ void kmain(void) {
     debug_log(DEBUG_LEVEL_INFO, "BOOT", "Registering storage drivers...");
     ata_init_subsystem();
     ahci_init_subsystem();
+    xhci_init_subsystem();      /* Register xHCI before PCI scan probes it */
 
     /* 17. PCI Enumeration (Triggers driver probes, partition discovery, and mounting) */
     pci_init(); 
