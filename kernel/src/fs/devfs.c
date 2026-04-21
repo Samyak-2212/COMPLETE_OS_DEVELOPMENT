@@ -114,33 +114,37 @@ static uint64_t tty0_write(vfs_node_t *n, uint64_t off, uint64_t sz,
     return sz;
 }
 
-/* Read: spin-poll input_poll_event up to sz times (one ASCII char per event).
- * Returns number of bytes placed into buf. Returns 0 if no events arrive
- * within a bounded poll count to avoid infinite spinning. */
-static uint64_t tty0_read(vfs_node_t *n, uint64_t off, uint64_t sz,
-                            uint8_t *buf)
+#include "sched/scheduler.h"
+
+/* Read: reads input_poll_event yielding to the scheduler if no events arrive.
+ * Implements basic line discipline: echoes characters and handles backspace.
+ * Returns only when a newline is encountered or buffer is full. */
+static uint64_t tty0_read(vfs_node_t *n, uint64_t off, uint64_t sz, uint8_t *buf)
 {
     (void)n; (void)off;
     uint64_t filled = 0;
 
-    /* Bound: poll at most 1 000 000 times per byte requested */
-    for (uint64_t i = 0; i < sz; i++) {
+    while (filled < sz) {
         input_event_t ev;
-        int poll_count = 0;
-        int got = 0;
-
-        while (poll_count < 1000000) {
-            if (input_poll_event(&ev)) {
-                if (ev.type == INPUT_EVENT_KEY_PRESS && ev.ascii != 0) {
-                    buf[filled++] = (uint8_t)ev.ascii;
-                    got = 1;
+        if (input_poll_event(&ev)) {
+            if (ev.type == INPUT_EVENT_KEY_PRESS && ev.ascii != 0) {
+                if (ev.ascii == '\b' || ev.ascii == KEY_DELETE) {
+                    if (filled > 0) {
+                        filled--;
+                        kprintf("\b \b");
+                    }
+                } else if (ev.ascii == '\n') {
+                    buf[filled++] = '\n';
+                    kprintf("\n");
                     break;
+                } else if (ev.ascii >= 32 && ev.ascii <= 126) {
+                    buf[filled++] = (uint8_t)ev.ascii;
+                    kprintf("%c", ev.ascii);
                 }
             }
-            poll_count++;
+        } else {
+            schedule();
         }
-
-        if (!got) break; /* Timed out — stop reading */
     }
 
     return filled;

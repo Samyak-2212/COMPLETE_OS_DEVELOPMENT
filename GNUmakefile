@@ -107,6 +107,8 @@ $(IMAGE_NAME).iso: limine/limine kernel-all
 	cp -v kernel/bin-$(ARCH)-dbg0/kernel iso_root/boot/$(KERN_RELEASE)
 	cp -v kernel/bin-$(ARCH)-dbg1/kernel iso_root/boot/$(KERN_HID)
 	cp -v kernel/bin-$(ARCH)-dbg2/kernel iso_root/boot/$(KERN_LOD)
+	# Copy userspace init
+	cp -v userspace/build/init iso_root/boot/init
 	mkdir -p iso_root/boot/limine
 	# Use multi-kernel menu config for real hardware
 	cp -v limine-multi.conf.in iso_root/boot/limine/limine.conf
@@ -132,6 +134,7 @@ define PATCH_ISO_CONF
 	cp kernel/bin-$(ARCH)-dbg0/kernel iso_root_patch/boot/$(KERN_RELEASE)
 	cp kernel/bin-$(ARCH)-dbg1/kernel iso_root_patch/boot/$(KERN_HID)
 	cp kernel/bin-$(ARCH)-dbg2/kernel iso_root_patch/boot/$(KERN_LOD)
+	cp userspace/build/init           iso_root_patch/boot/init
 	cp limine-dbg$(1).conf.in               iso_root_patch/boot/limine/limine.conf
 	cp limine/limine-bios.sys limine/limine-bios-cd.bin limine/limine-uefi-cd.bin iso_root_patch/boot/limine/
 	cp limine/BOOTX64.EFI  iso_root_patch/EFI/BOOT/
@@ -248,6 +251,7 @@ $(IMAGE_NAME).hdd: limine/limine kernel-all
 	mcopy -i $(IMAGE_NAME).hdd@@1M kernel/bin-$(ARCH)-dbg0/kernel ::/boot/$(KERN_RELEASE)
 	mcopy -i $(IMAGE_NAME).hdd@@1M kernel/bin-$(ARCH)-dbg1/kernel ::/boot/$(KERN_HID)
 	mcopy -i $(IMAGE_NAME).hdd@@1M kernel/bin-$(ARCH)-dbg2/kernel ::/boot/$(KERN_LOD)
+	mcopy -i $(IMAGE_NAME).hdd@@1M userspace/build/init ::/boot/init
 	mcopy -i $(IMAGE_NAME).hdd@@1M limine-multi.conf.in ::/boot/limine/limine.conf
 	mcopy -i $(IMAGE_NAME).hdd@@1M limine/limine-bios.sys ::/boot/limine
 	mcopy -i $(IMAGE_NAME).hdd@@1M limine/BOOTX64.EFI ::/EFI/BOOT

@@ -1,8 +1,8 @@
 # NexusOS Implementation Progress
 
-> **Last Updated**: 2026-04-17 by Bug-Fix Agent
+> **Last Updated**: 2026-04-21 by Coordinator Agent (Phase 4 Review + Hardening)
 > **Kernel Version**: 0.1.0 "Genesis"
-> **Current Phase**: Phase 3 COMPLETE ✅ → Phase 4 (NEXT)
+> **Current Phase**: Phase 4 COMPLETE ✅ → Phase 5 (NEXT)
 
 ## ✅ Phase 1: Limine Boot + Hello World
 All tasks complete. Kernel boots via Limine, prints banner with system info to framebuffer.
@@ -31,9 +31,9 @@ All tasks complete. GDT, IDT, PIC, PMM, VMM, heap, timer, PS/2 input all functio
 | `kernel/src/arch/x86_64/isr_stubs.asm` | ISR/IRQ assembly stubs (iretq) |
 | `kernel/src/hal/pic.c` | PIC remap IRQ0→INT32 |
 | `kernel/src/drivers/timer/pit.c` | PIT 1ms timer (IRQ0) |
-| `kernel/src/mm/pmm.c` | Bitmap page allocator |
-| `kernel/src/mm/vmm.c` | 4-level paging (uses Limine tables) |
-| `kernel/src/mm/heap.c` | kmalloc/kfree (free-list) |
+| `kernel/src/mm/pmm.c` | Bitmap page allocator + COW refcounts |
+| `kernel/src/mm/vmm.c` | 4-level paging, COW clone, demand-paged #PF handler, vmm_destroy_address_space |
+| `kernel/src/mm/heap.c` | kmalloc/kfree/kcalloc (free-list + coalescing) |
 | `kernel/src/lib/spinlock.c` | cli/sti spinlocks |
 | `kernel/src/drivers/input/ps2_controller.c` | i8042 init + port detection |
 | `kernel/src/drivers/input/ps2_keyboard.c` | Scancode set 1 → ASCII (IRQ1) |
@@ -50,21 +50,50 @@ All tasks complete. PCI enumerated, ATA/AHCI drivers functional, VFS with multip
 | **VFS** | ✅ | Hybrid mount table, ramfs root, path resolution. |
 | **Filesystems** | ✅ | FAT32 (R/W), NTFS (R), ext4 (R). |
 | **Terminal** | ✅ | VT100 emulation, ANSI colors, line editing. |
-| **Shell** | ✅ | Modular command registration (Basic commands R/W, complex as STUBS). |
+| **Shell** | ✅ | Modular command registration (21+ commands). |
 | **devfs** | ✅ | Unified device nodes in `/dev`. |
-| **Nexus Debugger** | ✅ | Professional agent-friendly serial debugger with NDP protocol, ELF parsing, and hardware watchpoints. |
+| **Nexus Debugger** | ✅ | Serial debugger with NDP protocol, ELF parsing, hardware watchpoints. |
+
+## ✅ Phase 4: Multitasking, USB, Userspace
+All tasks complete. Preemptive multitasking, COW fork, demand paging, ELF loader, syscall interface, xHCI USB driver, HID keyboard, userspace libc and init process implemented.
+
+| Component | Status | Details |
+|---|---|---|
+| **Scheduler** | ✅ | 8-priority round-robin, IRQ0-driven, idle thread, TSS RSP0 update |
+| **Process/Thread** | ✅ | PCB + TCB, lazy FD table, shared CWD, VMA tracking, atomic PID/TID |
+| **Context Switch** | ✅ | `switch_context` ASM, callee-saved frame on kernel stack |
+| **Syscall Interface** | ✅ | SYSCALL/SYSRET, IA32_LSTAR, Linux x86_64 ABI, 40+ handlers |
+| **COW Fork** | ✅ | vmm_cow_clone() marks pages RO, #PF copies on write |
+| **Demand Paging** | ✅ | #PF handler: COW, stack growth, heap/VMA lazy alloc |
+| **ELF Loader** | ✅ | Lazy physical alloc — only file-backed pages pre-mapped, BSS on-demand |
+| **Init Process** | ✅ | PID 1 from Limine module, IRETQ → Ring 3 |
+| **xHCI Driver** | ✅ | Full init, BIOS handoff, IRQ-driven events, port enumeration. DMA <4GB |
+| **USB Enumeration** | ✅ | ENABLE_SLOT, ADDRESS_DEVICE, GET_DESCRIPTOR, SET_CONFIGURATION |
+| **USB HID** | ✅ | Keyboard boot protocol, report parsing, 8-key rollover |
+| **userspace libc** | ✅ | crt0, syscall stubs, stdio (buffered), stdlib (malloc/free), string, dirent |
+| **init binary** | ✅ | Launches userspace shell (nsh) via execve |
+| **vmm_destroy** | ✅ | COW-safe full address space teardown on process exit |
+| **Address Space** | ✅ | Kernel upper-half shared, user lower-half per-process |
+
+### Phase 4 Hardening (Coordinator Review 2026-04-21)
+- Fixed: `usb_device.c` packed-struct UB (memcpy replace pointer cast)
+- Fixed: `init_process.c` missing `heap.h` include (implicit `kcalloc`)
+- Fixed: `xhci.c` / `usb_hub.c` unused variable/parameter warnings
+- Fixed: `syscall_entry.asm` section-crossing reloc warnings (`default rel`)
+- Fixed: `process_destroy` leaked VMAs and only freed PML4 page (not full addr space)
+- Implemented: `vmm_destroy_address_space` (was declared but undefined — linker bomb)
+- Fixed: blanket `-Wunused-parameter` suppression pragma removed; proper `(void)` casts added
+- Fixed: `sys_fork` null-check on kcalloc result; removed undefined `fork_setup_child_return` extern
 
 ## Build Status
-- **Compiler**: GCC (cc) with full freestanding x86_64 flags.
+- **Compiler**: GCC (cc), freestanding x86_64 flags.
 - **Errors**: 0
 - **C Warnings**: 0
-- **NASM Warnings**: 1 (32-bit reloc info, pre-existing, harmless)
+- **NASM Warnings**: ~8 (32-bit reloc info, pre-existing in ASM stubs, harmless on ELF64)
 - **ISO**: `nexusos-x86_64.iso` generated successfully.
-- **Files created**: 108 source files (kernel/src + debugger/src)
-- **Recent fix**: `vsnprintf` rewritten — full format specifier support (BUG-006 resolved).
-- **Next Phase Ready**: Phase 4 (Multitasking).
+- **Files created**: 136 source files (kernel/src + debugger/src)
+- **Next Phase**: Phase 5 (ACPI/APIC/Hardware Polish).
 
 ## ⬜ Remaining Phases
-- **Phase 4**: Multitasking, USB, Userspace (9 tasks) [NEXT]
-- **Phase 5**: ACPI, APIC, Hardware polish (3 tasks)
-- **Phase 6**: GUI (reserved for future / another agent)
+- **Phase 5**: ACPI (shutdown/reboot), APIC (replace PIC), physical hardware testing (3 tasks)
+- **Phase 6**: GUI (reserved for future agent)

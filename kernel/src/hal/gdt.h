@@ -64,8 +64,8 @@ typedef struct __attribute__((packed)) {
 
 #define GDT_KERNEL_CODE  0x08   /* Kernel code segment (index 1) */
 #define GDT_KERNEL_DATA  0x10   /* Kernel data segment (index 2) */
-#define GDT_USER_CODE    0x18   /* User code segment (index 3) */
-#define GDT_USER_DATA    0x20   /* User data segment (index 4) */
+#define GDT_USER_DATA    0x18   /* User data segment (index 3) */
+#define GDT_USER_CODE    0x20   /* User code segment (index 4) */
 #define GDT_TSS          0x28   /* TSS segment (index 5, 16 bytes) */
 
 /* ── Functions ───────────────────────────────────────────────────────────── */

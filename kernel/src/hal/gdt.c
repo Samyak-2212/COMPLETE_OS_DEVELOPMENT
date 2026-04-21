@@ -69,15 +69,15 @@ void gdt_init(void) {
      * Granularity: 0x00 (data segments ignore L bit in long mode) */
     gdt_set_entry(2, 0, 0xFFFFF, 0x92, 0x00);
 
-    /* Entry 3: User Code 64-bit
-     * Access: Present=1, DPL=3, S=1, Type=Execute/Read = 0xFA
-     * Granularity: Long mode = 0x20 */
-    gdt_set_entry(3, 0, 0xFFFFF, 0xFA, 0x20);
-
-    /* Entry 4: User Data 64-bit
+    /* Entry 3: User Data 64-bit
      * Access: Present=1, DPL=3, S=1, Type=Read/Write = 0xF2
      * Granularity: 0x00 */
-    gdt_set_entry(4, 0, 0xFFFFF, 0xF2, 0x00);
+    gdt_set_entry(3, 0, 0xFFFFF, 0xF2, 0x00);
+
+    /* Entry 4: User Code 64-bit
+     * Access: Present=1, DPL=3, S=1, Type=Execute/Read = 0xFA
+     * Granularity: Long mode = 0x20 */
+    gdt_set_entry(4, 0, 0xFFFFF, 0xFA, 0x20);
 
     /* Setup TSS */
     tss.iopb_offset = sizeof(tss_t);

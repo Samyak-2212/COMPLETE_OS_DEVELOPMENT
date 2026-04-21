@@ -4,3 +4,4 @@ timeout: 0
     comment: AI agent interactive console (nxdbg> prompt). Connect at 115200 baud on COM1.
     protocol: limine
     path: boot():/boot/nexus-kernel-lod
+    module_path: boot():/boot/init

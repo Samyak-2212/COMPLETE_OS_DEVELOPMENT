@@ -39,4 +39,9 @@ uint64_t pmm_get_free_memory(void);
 uint64_t pmm_get_total_page_count(void);
 uint64_t pmm_get_free_page_count(void);
 
+/* COW Reference counting API additions */
+void     pmm_page_ref(uint64_t phys);   /* increment refcount */
+void     pmm_page_unref(uint64_t phys); /* decrement; free if 0 */
+uint16_t pmm_page_refcount(uint64_t phys);
+
 #endif /* NEXUS_MM_PMM_H */

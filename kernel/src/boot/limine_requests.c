@@ -97,7 +97,14 @@ static volatile struct limine_firmware_type_request firmware_type_request = {
     .id = LIMINE_FIRMWARE_TYPE_REQUEST_ID,
     .revision = 0
 };
+/* ── Module request ────────────────────────────────────────────────────────── */
 
+/* Get modules loaded by bootloader */
+__attribute__((used, section(".limine_requests")))
+static volatile struct limine_module_request module_request = {
+    .id = LIMINE_MODULE_REQUEST_ID,
+    .revision = 1
+};
 
 /* ── Accessor functions ─────────────────────────────────────────────────── */
 /* These allow other translation units to access the responses. */
@@ -133,4 +140,6 @@ struct limine_executable_file_response *limine_get_exec_file(void) {
 struct limine_firmware_type_response *limine_get_firmware_type(void) {
     return firmware_type_request.response;
 }
-
+struct limine_module_response *limine_get_modules(void) {
+    return module_request.response;
+}

@@ -20,8 +20,7 @@ static volatile int      boot_pixel_active = 1;
 
 /* ── IRQ0 handler ───────────────────────────────────────────────────────── */
 
-static void pit_irq_handler(registers_t *regs) {
-    (void)regs;
+void pit_tick_increment(void) {
     tick_count++;
 
     /* Boot responsiveness pixel: blink (0,0) every 100ms while booting */
@@ -33,7 +32,11 @@ static void pit_irq_handler(registers_t *regs) {
 
     /* Update terminal cursor blink */
     terminal_blink_tick(&main_terminal);
+}
 
+static void pit_irq_handler(registers_t *regs) {
+    (void)regs;
+    pit_tick_increment();
     pic_send_eoi(0);
 }
 

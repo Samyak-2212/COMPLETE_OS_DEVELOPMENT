@@ -13,6 +13,7 @@
 #include "mm/heap.h"
 #include "fs/vfs.h"
 #include "drivers/input/input_event.h"
+#include "drivers/timer/pit.h"
 #include <stdint.h>
 
 /* Forward declaration — provided by input_manager.c */
@@ -236,7 +237,10 @@ void shell_run(void) {
 
     cwd_node = vfs_root;
 
-    kprintf("\nWelcome to NexusOS Shell!\nType 'help' for a list of commands.\n\n");
+    /* Delay slightly to allow the /init process to print its startup messages before we paint the prompt */
+    pit_sleep_ms(250);
+
+    kprintf("\033[J\nWelcome to NexusOS Shell!\nType 'help' for a list of commands.\n\n");
 
     while (1) {
         kprintf("\033[1;36mnexus\033[0m:\033[1;34m%s\033[0m$ ", cwd);

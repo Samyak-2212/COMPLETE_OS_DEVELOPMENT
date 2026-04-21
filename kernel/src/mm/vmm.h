@@ -39,4 +39,12 @@ uint64_t vmm_get_phys(uint64_t virt);
 /* Get the HHDM offset (for physical → virtual conversion) */
 uint64_t vmm_get_hhdm_offset(void);
 
+#include "hal/isr.h"
+void page_fault_handler(registers_t *regs);
+
+/* COW Fork & Address Space API */
+uint64_t vmm_clone_kernel_space(void);
+uint64_t vmm_cow_clone(uint64_t parent_cr3);
+void vmm_destroy_address_space(uint64_t cr3);
+
 #endif /* NEXUS_MM_VMM_H */

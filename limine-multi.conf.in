@@ -15,6 +15,7 @@ timeout: 5
     comment: NexusOS x86_64 — Release build (no debugger)
     protocol: limine
     path: boot():/boot/nexus-kernel
+    module_path: boot():/boot/init
 
 # ── Directory: Advanced Options ──────────────────────────────────────────────
 # This entry becomes a submenu because //entries follow immediately after it.
@@ -24,8 +25,10 @@ timeout: 5
         comment: Serial console mirror (COM1 115200 baud). Connect via minicom / picocom.
         protocol: limine
         path: boot():/boot/nexus-kernel-hid
+    module_path: boot():/boot/init
 
     //NexusOS [Low-Level Debugger]
         comment: Interactive agent console (nxdbg> prompt). Connect via serial at 115200 baud.
         protocol: limine
         path: boot():/boot/nexus-kernel-lod
+    module_path: boot():/boot/init

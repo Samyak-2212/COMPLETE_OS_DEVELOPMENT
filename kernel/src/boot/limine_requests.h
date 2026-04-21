@@ -34,5 +34,7 @@ struct limine_executable_file_response *limine_get_exec_file(void);
 /* Get firmware type (BIOS vs UEFI) response */
 struct limine_firmware_type_response *limine_get_firmware_type(void);
 
+/* Get loaded modules (e.g. initrd, standalone files) */
+struct limine_module_response *limine_get_modules(void);
 
 #endif /* NEXUS_BOOT_LIMINE_REQUESTS_H */

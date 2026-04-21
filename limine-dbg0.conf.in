@@ -3,3 +3,4 @@ timeout: 0
 /NexusOS
     protocol: limine
     path: boot():/boot/nexus-kernel
+    module_path: boot():/boot/init

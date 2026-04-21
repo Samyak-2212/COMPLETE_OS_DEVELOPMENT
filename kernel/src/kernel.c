@@ -27,6 +27,8 @@
 #include "mm/pmm.h"
 #include "mm/vmm.h"
 #include "mm/heap.h"
+#include "syscall/syscall.h"
+#include "sched/scheduler.h"
 #include "drivers/timer/pit.h"
 #include "drivers/input/ps2_controller.h"
 #include "drivers/input/ps2_keyboard.h"
@@ -46,6 +48,8 @@
 extern void input_manager_init(void);
 extern int input_poll_event(input_event_t *out);
 extern int input_has_event(void);
+extern void init_process_start(void);
+extern void page_fault_handler(registers_t *regs);
 
 /* ── Kernel panic ───────────────────────────────────────────────────────── */
 
@@ -55,7 +59,7 @@ static void hcf(void) {
     }
 }
 
-static void kpanic(const char *msg) {
+void kpanic(const char *msg) {
     debug_log(DEBUG_LEVEL_PANIC, "KERNEL", "PANIC: %s", msg);
     debugger_panic_hook(msg, NULL);
 
@@ -183,7 +187,8 @@ void kmain(void) {
     /* 7. Initialize VMM */
     debug_log(DEBUG_LEVEL_INFO, "BOOT", "Initializing VMM...");
     vmm_init();
-    debug_log(DEBUG_LEVEL_INFO, "BOOT", "VMM initialized.");
+    isr_register_handler(ISR_PAGE_FAULT, page_fault_handler);
+    debug_log(DEBUG_LEVEL_INFO, "BOOT", "VMM initialized and PF registered.");
 
     /* 8. Initialize kernel heap (256 KiB initial) */
     debug_log(DEBUG_LEVEL_INFO, "BOOT", "Initializing Heap...");
@@ -299,21 +304,26 @@ void kmain(void) {
     kprintf("  Timer test: ticks=%llu\n", (unsigned long long)pit_get_ticks());
 
     /* ================================================================
-     * Phase 3: Terminal & Shell
+     * Phase 4: Multitasking & User Space
      * ================================================================ */
 
     kprintf_set_color(0x00FFCC00, FB_DEFAULT_BG);
-    debug_log(DEBUG_LEVEL_INFO, "BOOT", "Launching Kernel Shell...");
-    
-    /* Late-allocate terminal backbuffers now that heap is online */
-    terminal_allocate_backbuffer(&main_terminal);
-    
-    /* Stop capturing kernel logs so dmesg only contains the boot process */
-    klog_stop_recording();
-    
-    /* Clear boot logs for a fresh shell entry */
-    terminal_clear(&main_terminal);
-    
-    /* Main kernel shell — never returns */
-    shell_run();
+    kprintf("\n--- Phase 4: Multitasking & Syscalls ---\n\n");
+    kprintf_set_color(0x00CCCCCC, FB_DEFAULT_BG);
+
+    if (scheduler_init() == 0) {
+        syscall_init();
+        init_process_start();
+
+        kprintf_set_color(0x00FFCC00, FB_DEFAULT_BG);
+        debug_log(DEBUG_LEVEL_INFO, "BOOT", "Starting Multitasking Environment...");
+        kprintf("Starting Multitasking Environment...\n");
+
+        terminal_allocate_backbuffer(&main_terminal);
+        klog_stop_recording();
+
+        scheduler_start(); /* NEVER RETURNS */
+    } else {
+        kpanic("Scheduler initialization failed");
+    }
 }

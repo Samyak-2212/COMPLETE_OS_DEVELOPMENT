@@ -1,7 +1,7 @@
 # NexusOS — Kernel API Reference
 
-> **Version**: 1.0 | **Last Updated**: 2026-03-29
-> **Status**: Phase 2 complete. APIs below are STABLE unless marked [PLANNED].
+> **Version**: 2.0 | **Last Updated**: 2026-04-21
+> **Status**: Phase 4 complete. APIs below are STABLE unless marked [PLANNED].
 
 ---
 
@@ -16,6 +16,10 @@ uint64_t pmm_alloc_pages(uint64_t count);   // Allocate N contiguous pages
 void     pmm_free_pages(uint64_t phys, uint64_t count);
 uint64_t pmm_get_free_page_count(void);
 uint64_t pmm_get_total_page_count(void);
+// COW refcount API (Phase 4):
+void     pmm_page_ref(uint64_t phys);       // Increment page refcount (COW clone)
+void     pmm_page_unref(uint64_t phys);     // Decrement; free physical page if refcount hits 0
+uint16_t pmm_page_refcount(uint64_t phys);  // Read current refcount
 ```
 
 ### VMM — Virtual Memory Manager (`vmm.h`)
@@ -24,17 +28,24 @@ void     vmm_init(void);
 void     vmm_map_page(uint64_t virt, uint64_t phys, uint64_t flags);
 void     vmm_unmap_page(uint64_t virt);
 uint64_t vmm_get_phys(uint64_t virt);                // Walk page tables
-// Flags: PAGE_PRESENT, PAGE_WRITABLE, PAGE_USER, PAGE_NX
-// HHDM: use extern uint64_t hhdm_offset; phys_to_virt = phys + hhdm_offset
+uint64_t vmm_get_hhdm_offset(void);                  // HHDM base for phys→virt
+// Phase 4 address space API:
+uint64_t vmm_clone_kernel_space(void);               // New PML4 with kernel upper-half copied
+uint64_t vmm_cow_clone(uint64_t parent_cr3);         // Full COW clone of user address space
+void     vmm_destroy_address_space(uint64_t cr3);    // Free all user pages + page tables (COW-safe)
+void     page_fault_handler(registers_t *regs);      // Handles COW, stack growth, heap demand-paging
+// Flags: PAGE_PRESENT, PAGE_WRITABLE, PAGE_USER, PAGE_NOCACHE, PAGE_NX
+// HHDM: phys_to_virt = phys + vmm_get_hhdm_offset()
 ```
 
 ### Heap (`heap.h`)
 ```c
 void  heap_init(uint64_t initial_pages);    // Initialize kernel heap
-void *kmalloc(uint64_t size);               // Allocate (NOT zeroed)
-void *kcalloc(uint64_t count, uint64_t size); // Allocate + zero [PLANNED]
+void *kmalloc(size_t size);                 // Allocate (NOT zeroed)
+void *kcalloc(size_t count, size_t size);   // Allocate + zero (STABLE Phase 4)
 void  kfree(void *ptr);                     // Free allocation
-void *kmalloc_aligned(uint64_t size, uint64_t alignment);
+void *kmalloc_aligned(size_t size, size_t alignment);
+void  heap_get_stats(uint64_t *total, uint64_t *used, uint64_t *free_bytes);
 ```
 
 ---
@@ -60,8 +71,16 @@ static inline void     invlpg(uint64_t addr);
 ### GDT (`gdt.h`)
 ```c
 void gdt_init(void);
-// Segments: 0x00=null, 0x08=kernel_code64, 0x10=kernel_data64,
-//           0x18=user_code64, 0x20=user_data64, 0x28=TSS
+void tss_set_rsp0(uint64_t rsp0);   // Update TSS RSP0 on every context switch
+// Segment Selectors (GDT index × 8 | RPL):
+//   0x00 = null
+//   0x08 = kernel code64    (Ring 0)
+//   0x10 = kernel data64   (Ring 0)
+//   0x18 = user data64     (Ring 3) — SS on SYSRET/IRETQ
+//   0x20 = user code64     (Ring 3) — CS on SYSRET/IRETQ
+//   0x28 = TSS (16-byte entry spanning two slots)
+// With RPL=3: user_data64=0x1B, user_code64=0x23
+// IA32_STAR[47:32]=0x0008 (SYSCALL CS), IA32_STAR[63:48]=0x0013 (SYSRET CSS base)
 ```
 
 ### IDT / ISR (`idt.h`, `isr.h`)
@@ -227,23 +246,99 @@ void        vfs_register_fs(const char *name, vfs_ops_t *ops);
 
 ---
 
-## 11. Syscall Interface [PLANNED — Phase 4]
+## 11. Syscall Interface (Phase 4 — STABLE)
+
+Linux x86_64 ABI. Invoke via `syscall` instruction: RAX=num, args in RDI/RSI/RDX/R10/R8/R9.
+Return value in RAX. Negative = `-errno`.
+
 ```c
-// Syscall numbers (in RDI via syscall instruction)
-#define SYS_EXIT   0
-#define SYS_WRITE  1   // fd, buf, count → bytes_written
-#define SYS_READ   2   // fd, buf, count → bytes_read
-#define SYS_OPEN   3   // path, flags → fd
-#define SYS_CLOSE  4   // fd → 0
-#define SYS_FORK   5   // → pid (child=0, parent=child_pid)
-#define SYS_EXEC   6   // path, argv → doesn't return on success
-#define SYS_MMAP   7   // addr, len, prot, flags → mapped_addr
-#define SYS_GETPID 8   // → pid
-#define SYS_WAIT   9   // pid → exit_status
-#define SYS_KILL   10  // pid, signal → 0
-#define SYS_IOCTL  11  // fd, cmd, arg → result (used for /dev/fb0 VT switching)
+// Linux-compatible syscall numbers (subset implemented in Phase 4):
+#define SYS_READ          0    // fd, buf, count → bytes_read
+#define SYS_WRITE         1    // fd, buf, count → bytes_written
+#define SYS_OPEN          2    // path, flags, mode → fd
+#define SYS_CLOSE         3    // fd → 0
+#define SYS_STAT          4    // path, statbuf → -ENOSYS (stub)
+#define SYS_MMAP          9    // addr, len, prot, flags → mapped_virt
+#define SYS_MPROTECT      10   // stub → 0
+#define SYS_MUNMAP        11   // stub → 0
+#define SYS_BRK           12   // new_brk (0=query) → current_brk
+#define SYS_RT_SIGACTION  13   // stub → 0
+#define SYS_RT_SIGPROCMASK 14  // stub → 0
+#define SYS_IOCTL         16   // stub → -ENOSYS
+#define SYS_FORK          57   // → child_pid (parent), 0 (child, deferred)
+#define SYS_EXECVE        59   // path, argv, envp → -ENOSYS (context replacement Phase 5)
+#define SYS_EXIT          60   // code → no return
+#define SYS_WAIT4         61   // pid, *status, options → reaped_pid
+#define SYS_GETPID        39   // → pid
+#define SYS_GETPPID       110  // → ppid
+#define SYS_GETUID        102  // → uid
+#define SYS_GETTID        186  // → tid
+#define SYS_ARCH_PRCTL    158  // code=ARCH_SET_FS(0x1002) → 0
+#define SYS_SET_TID_ADDR  218  // → tid
+#define SYS_EXIT_GROUP    231  // code → no return
+#define SYS_OPENAT        257  // stub → -ENOSYS
+#define SYS_GETDENTS64    217  // stub → -ENOSYS
+```
 
 ---
+
+## 15. Process/Thread/Scheduler (Phase 4 — STABLE)
+
+```c
+/* process.h */
+typedef int32_t pid_t;
+process_t *process_create(pid_t ppid);          // Allocate PCB + PML4
+process_t *process_get(pid_t pid);              // O(n) PID lookup
+void       process_destroy(process_t *proc);    // Free VMAs, addr space, FD table, TCBs
+int        process_exit(process_t *proc, int code); // ZOMBIE + schedule()
+pid_t      process_waitpid(pid_t parent, pid_t target, int *status);
+void       process_add_vma(process_t *p, uint64_t start, uint64_t end, uint32_t flags);
+vma_t     *process_find_vma(process_t *p, uint64_t addr);
+extern process_t *current_process;  /* Updated by scheduler on every switch */
+extern thread_t  *current_thread;
+
+/* thread.h */
+thread_t *thread_create(process_t *proc, uint64_t entry_rip, uint64_t arg1, uint64_t arg2);
+void      thread_destroy(thread_t *t);
+void      thread_sleep_ms(uint64_t ms);         // Block + schedule for at least ms ms
+
+/* scheduler.h */
+int  scheduler_init(void);                      // Creates idle+shell threads, hooks IRQ0
+void scheduler_start(void);                     // Bootstrap: load first thread. Never returns.
+void scheduler_enqueue(thread_t *t);            // Add thread to priority queue
+void scheduler_dequeue(thread_t *t);            // Remove thread from priority queue
+void schedule(void);                            // Pick next thread, switch context
+void scheduler_block(thread_state_t reason);    // Block current thread + schedule()
+void scheduler_wake(thread_t *t);               // Wake BLOCKED/SLEEPING thread
+void scheduler_exit_current(int code);          // Exit current process
+void scheduler_tick(void);                      // Called from IRQ0 every ms
+thread_t  *scheduler_current_thread(void);
+process_t *scheduler_current_process(void);
+// Priority levels (nexus_config.h):
+//   SCHED_PRIORITY_IDLE=0, LOW=2, NORMAL=4, HIGH=6, RT=7
+```
+
+---
+
+## 16. USB Subsystem (Phase 4 — STABLE)
+
+```c
+/* xhci.h */
+void xhci_init_subsystem(void);              // Register xHCI driver with PnP manager
+int  xhci_command_ring_push(xhci_t *hc, xhci_trb_t *trb);
+int  xhci_wait_command(xhci_t *hc, uint64_t cmd_trb_phys, uint8_t *slot_out, uint8_t *cc_out);
+void xhci_process_events(xhci_t *hc);        // Process event ring (called from IRQ handler)
+
+/* usb_device.h */
+int usb_enumerate_device(xhci_t *hc, uint8_t port, uint8_t speed);
+int usb_control_transfer(xhci_t *hc, usb_device_t *dev, usb_setup_t *setup,
+                         uint64_t data_phys, uint16_t data_len, int dir_in);
+extern usb_device_t *usb_devices[USB_MAX_DEVICES];  // Lazy: NULL until enumerated
+
+/* usb_hid.h */
+int usb_hid_probe(xhci_t *hc, usb_device_t *dev);  // Attach HID driver to device
+```
+
 
 ## 13. Userspace Display API (Phase 6 provisions)
 ```c

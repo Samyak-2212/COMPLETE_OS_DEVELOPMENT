@@ -4,3 +4,4 @@ timeout: 0
     comment: Serial console mirror. Connect at 115200 baud on COM1.
     protocol: limine
     path: boot():/boot/nexus-kernel-hid
+    module_path: boot():/boot/init

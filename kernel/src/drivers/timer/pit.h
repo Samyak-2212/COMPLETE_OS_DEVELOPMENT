@@ -27,6 +27,9 @@ void pit_init(void);
 /* Get current tick count since boot */
 uint64_t pit_get_ticks(void);
 
+/* Increment internal tick count (called by external timer interrupts) */
+void pit_tick_increment(void);
+
 /* Busy-wait for the given number of milliseconds */
 void pit_sleep_ms(uint64_t ms);
 

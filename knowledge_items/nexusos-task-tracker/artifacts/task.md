@@ -1,7 +1,7 @@
 # NexusOS Development — Task Tracker
 
-> **Last Updated**: 2026-04-17 by Bug-Fix Agent
-> **Current Phase**: Phase 3 COMPLETE ✅ → Phase 4 (NEXT)
+> **Last Updated**: 2026-04-21 by Coordinator Agent (Phase 4 Review)
+> **Current Phase**: Phase 4 COMPLETE ✅ → Phase 5 (NEXT)
 
 ## Phase 0: Initialization ✅
 - [x] Examine repository, research Limine protocol
@@ -52,17 +52,19 @@
 - [x] 3.V Verification — kernel shell functional, storage partitions detected, debugger verified via WSL
 - [x] 3.BF `vsnprintf` bug fix — added full specifier support (`%u/%x/%X/%p/%lu/%lx/%lld` + width/zero-pad); `lspci` and `free` shell commands now render correctly (BUG-006 RESOLVED)
 
-## Phase 4: Multitasking, USB, Userspace
-- [ ] 4.1 Process/thread model
-- [ ] 4.2 Context switch + scheduler
-- [ ] 4.3 System calls
-- [ ] 4.4 User-mode transition
-- [ ] 4.5 Minimal libc
-- [ ] 4.6 Init process + userspace shell
-- [ ] 4.7 xHCI host controller
-- [ ] 4.8 USB enumeration
-- [ ] 4.9 USB HID driver
-- [ ] 4.V Verification
+## Phase 4: Multitasking, USB, Userspace ✅
+- [x] 4.1 Process/thread model (PCB/TCB, lazy FD table, VMA tracking)
+- [x] 4.2 Context switch + 8-priority scheduler (IRQ0-driven preemption)
+- [x] 4.3 System calls (SYSCALL/SYSRET, Linux x86_64 ABI, 40+ handlers)
+- [x] 4.4 User-mode transition (IRETQ → Ring 3, GDT selectors correct)
+- [x] 4.5 Minimal libc (crt0, syscall stubs, stdio buffered, stdlib, string)
+- [x] 4.6 Init process + userspace shell (PID 1, ELF loader, nsh via execve)
+- [x] 4.7 xHCI host controller (BIOS handoff, IRQ-driven, DMA <4GB)
+- [x] 4.8 USB enumeration (ENABLE_SLOT, ADDRESS_DEVICE, descriptors)
+- [x] 4.9 USB HID driver (keyboard boot protocol, report parsing)
+- [x] 4.COW COW fork + demand paging #PF handler (stack growth, heap, BSS)
+- [x] 4.HARD Phase 4 hardening (0 C warnings, vmm_destroy_address_space, VMA leak, usb UB)
+- [ ] 4.V Verification (boot to userspace shell, USB keyboard input)
 
 ## Phase 5: Polish & Physical Hardware
 - [ ] 5.1 ACPI (shutdown/reboot)
